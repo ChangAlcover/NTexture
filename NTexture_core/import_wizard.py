@@ -6,7 +6,30 @@ from tkinter import messagebox
 import sys
 import scipy.io
 
-datos_finales=None
+
+################################################################
+#        This file is part of NTexture                         #
+#   At the moment you can get the full code at:                #
+#   https://github.com/ChangAlcover/NTexture                   #
+#                                                              #
+#   A publication will be made to explain its functionalities  #
+#                                                              #
+#   If you use it for your work, we would appreciate it        #
+#   if you would use the future reference                      #
+#                                                              #
+################################################################
+
+
+# This import_wizard was created to facilitate the user
+# to import data corresponding to the rotations perfomed
+
+# File types recommended are .odf .dat and .txt
+# a special option is enabled to import data created by this tool
+
+# The user is allowed to define the data in each imported column
+
+
+datos_finales=None   # This global variable will be used by the main code to obtain the rotations
 
 def import_list(name):
 
@@ -15,6 +38,12 @@ def import_list(name):
 	window_2.geometry('400x300')
 	window_2.resizable(0,0)
 	window_2.title("Import_wizard")
+
+# Matlab files tend have a rather complicated object list format
+# The chances of reading the file correctly are almost 100%
+# if the user knows the number of columns and rows
+# In case the parameters are unknown to the user,
+# a system was implemented in the function clk1()
 
 	if name[-3:]=="mat":
 		mat=scipy.io.loadmat(name)
@@ -54,6 +83,10 @@ def import_list(name):
 		ckb2.place(height=30,width=80,x=210,y=60)
 		ckvar2.set(False)
 
+
+		# Ignore all arrangements of lenght 1
+		# It is assumed that the number of rotations is read first
+		# and then the number of columns
 		def clk1():
 			global datos
 			cols=0
@@ -159,6 +192,12 @@ def import_list(name):
 				else:
 					sep=cmb1.get()
 
+			if ckvar2.get()==True:
+				names=lines[0].strip().split(sep)
+				ignore=int(spn1.get())+1
+			else:
+				names=None
+				ignore=int(spn1.get())
 
 			ignore=int(spn1.get())
 
@@ -181,10 +220,7 @@ def import_list(name):
 					messagebox.showinfo('Error: Invalid data','Invalid data in line'+i)
 					return 0
 
-			if ckvar2.get()==True:
-				names=lines[0].strip().split(sep)
-			else:
-				names=None
+
 			import_list_2(aux,names,window_2,datos)
 
 
@@ -194,6 +230,9 @@ def import_list(name):
 
 	window_2.mainloop()
 
+#Once the user loads the data, it's necessary to identify the data in each column
+#In case the information in the column is not relevant, 
+#the user can leave his name blank or assign the option "other"
 
 def import_list_2(num,names,window_2,datos):
 	global datos_finales

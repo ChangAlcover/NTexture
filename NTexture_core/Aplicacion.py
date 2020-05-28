@@ -36,7 +36,7 @@ window.geometry('800x600')
 window.resizable(0,0)
 window.title("Need a name")
 
-##Defino las 2 aplicaciones principales
+##Define the fundamental steps
 
 aplicacion_1=tk.LabelFrame(window,text="Structure")
 aplicacion_1.place(height=525,width=800,x=0,y=70)
@@ -46,12 +46,20 @@ aplicacion_2=tk.LabelFrame(window,text="HKL list")
 aplicacion_2.place(height=120,width=800,x=0,y=70)
 aplicacion_4=tk.LabelFrame(window,text="Beam direction")
 aplicacion_4.place(height=525,width=800,x=0,y=70)
-aplicacion_5=tk.LabelFrame(window,text="Simulate cross section")
+aplicacion_5=tk.LabelFrame(window,text="Simulations")
 aplicacion_5.place(height=415,width=800,x=0,y=180)
 
+aplicacion_top_1=tk.LabelFrame(window,text="Main steps")
+aplicacion_top_1.place(height=70,width=550,x=0,y=0)
+
+aplicacion_top_2=tk.LabelFrame(window,text="Extra resources")
+aplicacion_top_2.place(height=70,width=250,x=550,y=0)
 
 
-## Botones que me permiten elegir la aplicacion a utilizar
+aplicacion_top_1.tkraise()
+aplicacion_top_2.tkraise()
+
+## Buttons to choose the step
 def clk1():
 	aplicacion_1.tkraise()
 def clk2():
@@ -61,16 +69,33 @@ def clk3():
 	aplicacion_5.tkraise()
 def clk3_1():
 	aplicacion_4.tkraise()
-btn1=tk.Button(window, text="Strucuture", command=clk1,anchor=tk.W,highlightcolor="red")
-btn2=tk.Button(window, text="Geometry", command=clk2,anchor=tk.W,highlightcolor="red")
-btn3=tk.Button(window, text="Cross section", command=clk3,anchor=tk.W,highlightcolor="red")
-btn3_1=tk.Button(window, text="Beam", command=clk3_1,anchor=tk.W,highlightcolor="red")
+btn1=tk.Button(aplicacion_top_2, text="Generate strucuture", command=clk1,anchor=tk.W,highlightcolor="red")
+btn2=tk.Button(aplicacion_top_1, text="Geometry", command=clk2,anchor=tk.W,highlightcolor="red")
+btn3=tk.Button(aplicacion_top_1, text="Simulations", command=clk3,anchor=tk.W,highlightcolor="red")
+btn3_1=tk.Button(aplicacion_top_1, text="Beam", command=clk3_1,anchor=tk.W,highlightcolor="red")
 
+btn1.place(height=25, width=200,y=5,x=20)
 
-btn1.place(height=30, width=140,y=30,x=340)
-btn2.place(height=30, width=140,y=30,x=20)
-btn3.place(height=30, width=140,y=30,x=500)
-btn3_1.place(height=30, width=140,y=30,x=180)
+btn2.place(height=30, width=140,y=5,x=20)
+btn3.place(height=30, width=140,y=5,x=340)
+btn3_1.place(height=30, width=140,y=5,x=180)
+
+def Geometry_help(event):
+	tk.messagebox.showinfo(title="Step Info", message="In the seccion \"Geometry\" the user can:\n -Use one of the supplied geometries and define the center of it\n -move and rotate the figure\n -save and load the geommetry\n -specify the orientation of principal direction\n \n★If the user just want the Bragg component of the cross section, skip this step")
+
+def Beam_help(event):
+	tk.messagebox.showinfo(title="Step Info",message="In the section \"Beam\" the user can:\n -Define the beam direction in different reference systems \n -then, the user need to define the rotation performed in the experiment \n -save and load the rotation list \n ★An import wizard was made to help the user import a list of rotation \n ★This step is required")
+
+def Cross_s_help(event):
+	tk.messagebox.showinfo(title="Step Info",message="★Before this step, the user must have defined the ratation list\n ★The first thing to do in this step should be load de \"Structure file\" and generate or load the \"hkl list\"\n ")
+
+def Structure_help(event):
+	tk.messagebox.showinfo(title="Create strucuture info",message="Tengo que poner algo aca, eventualmente")
+
+btn2.bind("<Button-3>",Geometry_help)
+btn3_1.bind("<Button-3>",Beam_help)
+btn3.bind("<Button-3>",Cross_s_help)
+btn1.bind("<Button-3>",Structure_help)
 
 var_aux_1=tk.StringVar()
 var_aux_2=tk.StringVar()
@@ -282,6 +307,11 @@ lbl20.place(height=30,width=200,x=10,y=10)
 btn10=tk.Button(aplicacion_2,text="Load",command=clk10)
 btn10.place(height=30,width=60,x=280,y=10)
 
+def load_structure_help(event):
+	tk.messagebox.showinfo(title="Load structure info",message="The Structure files should have:\n -One line with the cristalografic data (sides and angles)\n -Others lines should have the wickoff position of every atoms, the scaterring length and the value u^2\n -The user can create the files with the help of the extra resource \"Generate strucutre\"")
+
+btn10.bind("<Button-3>",load_structure_help)
+
 btn11=tk.Button(aplicacion_2,text="Generate hkl list",command=clk11)
 btn11.place(height=30,width=150,x=250,y=50)
 
@@ -302,7 +332,7 @@ lbl21.place(height=30,width=100,x=10,y=50)
 # 	fs.Crear_uniforme(res)
 # 	fs.Funcion_modos(Beam)
 
-radVar1=tk.IntVar()
+radVar1=tk.IntVar() #To select dust or textured material
 
 def clk14():
 	global modos
@@ -351,7 +381,39 @@ def clk15():
 btn15=tk.Button(aplicacion_2,text="Simular seccion eficaz",command=clk15)
 btn15.place(height=30,width=150,x=250,y=250)
 
+radVar2=tk.IntVar() #Instrument
 
+lbls1=tk.Label(aplicacion_5,text="Instrument used:",anchor=tk.W)
+lbls1.place(height=30,width=150,x=400,y=10)
+
+def clkrad_2():
+	if radVar2.get()==3:
+		btns1=tk.Button(aplicacion_5,text="Load",command=clks1,state=tk.NORMAL)
+		btns1.place(height=30,width=50,x=600,y=100)
+	else:
+		btns1=tk.Button(aplicacion_5,text="Load",command=clks1,state=tk.DISABLED)
+		btns1.place(height=30,width=50,x=600,y=100)
+
+
+
+rad3=tk.Radiobutton(aplicacion_5,text="ENGINX",variable=radVar2,value=1,anchor=tk.W,command=clkrad_2)
+rad3.place(height=30,width=100,x=400,y=40)
+
+rad4=tk.Radiobutton(aplicacion_5,text="IMAT",variable=radVar2,value=2,anchor=tk.W,command=clkrad_2)
+rad4.place(height=30,width=100,x=400,y=70)
+
+rad3=tk.Radiobutton(aplicacion_5,text="Insert a new instrument",variable=radVar2,value=3,anchor=tk.W,command=clkrad_2)
+rad3.place(height=30,width=200,x=400,y=100)
+
+radVar2.set(1)
+
+def clks1():
+	a=1
+
+btns1=tk.Button(aplicacion_5,text="Load",command=clks1,state=tk.DISABLED)
+btns1.place(height=30,width=50,x=600,y=100)
+
+#More of the simulation step at the end
 
 ##Geometry section
 
@@ -1177,7 +1239,7 @@ def clk44():
 btn44=tk.Button(aplicacion_4,text="Here",command=clk44,fg="red")
 btn44.place(height=30,width=40,x=390,y=460)
 
-
+# More of the simulation step
 
 def run():
 	if len(direcciones.keys())==0:
@@ -1195,17 +1257,18 @@ def run():
 		Beam_rot=np.array([-np.sin(alpha)*np.sin(beta),np.sin(alpha)*np.cos(beta),np.cos(alpha)])
 
 		lbl_run=tk.Label(aplicacion_5,text="The rotation "+str(ii)+" is running",anchor=tk.W)
-		lbl_run.place(height=30,width=320,x=10,y=260)
+		lbl_run.place(height=30,width=320,x=10,y=650)
 
 		p=np.zeros(2000)
 		lam=np.linspace(1.5,6.0,2000)
 		for i in range (modos.shape[1]):
 			print(i)
 
-			bar = ttk.Progressbar(aplicacion_5, length=100)
-			bar.place(height=30,width=400,x=10,y=300)
-			if i%(modos.shape[1]//10)==0:
-				bar['value']=int(i*100/modos.shape[1])
+			# The progress bar doesnt work, dont konw why
+			#bar = ttk.Progressbar(aplicacion_5, length=100)
+			#bar.place(height=30,width=400,x=10,y=300)
+			#if i%(modos.shape[1]//10)==0:
+			#	bar['value']=int(i*100/modos.shape[1])
 
 			r = R.from_quat([modos[1][i], modos[2][i], modos[3][i], modos[4][i]])
 			r=r.inv()
@@ -1219,16 +1282,80 @@ def run():
 			#rot=fs.euler2cuat([0,(beta)*np.pi/180,0])
 			#posicion_rot=rot*aux*np.conjugate(rot)
 
-			p+=modos[0][i]*fs.Simular_dir_angles(aux,lam)
+			p+=modos[0][i]*fs.Simular_dir_angles(aux,lam,radVar2.set())
 		print(p)
 		salida=open("datos"+str(ii)+".txt",'w')
 		for i,j in enumerate (p):
 			salida.write(str(j)+"\t"+str(lam[i])+"\n")
 btn_run=tk.Button(aplicacion_5, text="Run", command=run,anchor=tk.W,highlightcolor="red")
-btn_run.place(height=40, width=80,y=350,x=650)
+btn_run.place(height=60, width=80,y=340,x=650)
+
+ckvar2=tk.BooleanVar()
+
+radVar3=tk.IntVar() #Beam path in the sample
+
+ckvar3=tk.BooleanVar() #Include non Bragg componet of cross section
+
+def clks2():
+	a=2
 
 
 
+def clk_rad2():
+	if radVar1.get()==3:
+		btns2=tk.Button(aplicacion_5, text="Load", command=clks2,anchor=tk.W,state=tk.NORMAL)
+		btns2.place(height=30, width=80,y=260,x=180)
+	else:
+		btns2=tk.Button(aplicacion_5, text="Load", command=clks2,anchor=tk.W,state=tk.DISABLED)
+		btns2.place(height=30, width=80,y=260,x=180)
+
+rads4=tk.Radiobutton(aplicacion_5,text="Experimental data",variable=radVar1,value=1,command=clk_rad2,anchor=tk.W,state=tk.DISABLED)
+rads4.place(height=30,width=150,x=30,y=200)
+
+rads5=tk.Radiobutton(aplicacion_5,text="Geometry",variable=radVar1,value=2,command=clk_rad2,anchor=tk.W,state=tk.DISABLED)
+rads5.place(height=30,width=150,x=30,y=230)
+
+rads6=tk.Radiobutton(aplicacion_5,text="External file",variable=radVar1,value=3,command=clk_rad2,anchor=tk.W,state=tk.DISABLED)
+rads6.place(height=30,width=150,x=30,y=260)
+
+radVar1.set(1)
+btns2=tk.Button(aplicacion_5, text="Load", command=clks2,anchor=tk.W,state=tk.DISABLED)
+btns2.place(height=30, width=80,y=260,x=180)
+
+def clk_ckb2():
+	if ckvar2.get():
+		rads4=tk.Radiobutton(aplicacion_5,text="Experimental data",variable=radVar1,value=1,command=clk_rad2,anchor=tk.W,state=tk.NORMAL)
+		rads4.place(height=30,width=150,x=30,y=200)
+
+		rads5=tk.Radiobutton(aplicacion_5,text="Geometry",variable=radVar1,value=2,command=clk_rad2,anchor=tk.W,state=tk.NORMAL)
+		rads5.place(height=30,width=150,x=30,y=230)
+
+		rads6=tk.Radiobutton(aplicacion_5,text="External file",variable=radVar1,value=3,command=clk_rad2,anchor=tk.W,state=tk.NORMAL)
+		rads6.place(height=30,width=150,x=30,y=260)
+		clk_rad2()
+	else:
+		rads4=tk.Radiobutton(aplicacion_5,text="Experimental data",variable=radVar1,value=1,command=clk_rad2,anchor=tk.W,state=tk.DISABLED)
+		rads4.place(height=30,width=150,x=30,y=200)
+
+		rads5=tk.Radiobutton(aplicacion_5,text="Geometry",variable=radVar1,value=2,command=clk_rad2,anchor=tk.W,state=tk.DISABLED)
+		rads5.place(height=30,width=150,x=30,y=230)
+
+		rads6=tk.Radiobutton(aplicacion_5,text="External file",variable=radVar1,value=3,command=clk_rad2,anchor=tk.W,state=tk.DISABLED)
+		rads6.place(height=30,width=150,x=30,y=260)
+		btns2=tk.Button(aplicacion_5, text="Load", command=clks2,anchor=tk.W,state=tk.DISABLED)
+		btns2.place(height=30, width=80,y=260,x=180)
+
+
+ckb2=ttk.Checkbutton(aplicacion_5,text="Calculate transmision using beam path in the sample define by:",command=clk_ckb2,variable=ckvar2)
+ckb2.place(height=30,width=500,x=10,y=160)
+ckvar2.set(False)
+
+def clk_ckb3():
+	a=1
+
+ckb2=ttk.Checkbutton(aplicacion_5,text="Include non-Bragg component of cross section",command=clk_ckb3,variable=ckvar3)
+ckb2.place(height=30,width=500,x=10,y=300)
+ckvar3.set(False)
 
 aplicacion_3.tkraise()
 

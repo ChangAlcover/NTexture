@@ -12,6 +12,27 @@ alfa=90
 beta=90
 gamma=90
 
+################################################################
+#        This file is part of NTexture                         #
+#   At the moment you can get the full code at:                #
+#   https://github.com/ChangAlcover/NTexture                   #
+#                                                              #
+#   A publication will be made to explain its functionalities  #
+#                                                              #
+#   If you use it for your work, we would appreciate it        #
+#   if you would use the future reference                      #
+#                                                              #
+################################################################
+
+#In this file the necessary functions are implemented for the 
+#simulation of the cross sections
+
+# Warning: some of these functions are obsolete and will be removed
+#          in future or updated versions
+
+# Warning: The functions work correctly for cubics structures only,
+#          although the implementation of the rest of the structures 
+#          is quite advanced, it is not complete
 
 def tipo_estructura(a,b,c,alfa,beta,gamma):
 	if (a==b==c and alfa==beta==gamma==90): return 1    #Cubica
@@ -22,6 +43,7 @@ def tipo_estructura(a,b,c,alfa,beta,gamma):
 	if (a!=b!=c and alfa!=beta!=gamma): return 6 		#Triclinica
 	if (a==b!=c and alfa==beta==90 and gamma==120): return 7 #Hexagonal
 	return 0
+
 
 def t_hkl_2(a,b,c,alfa,beta,gamma,h,k,l):
 	if (tipo_estructura(a,b,c,alfa,beta,gamma)==0): return 0
@@ -36,6 +58,11 @@ def t_hkl_2(a,b,c,alfa,beta,gamma,h,k,l):
 def v_0(a,b,c,alfa,beta,gamma): # Eventualmente lo tengo que hacer para todos tipos de estructura
 	if (tipo_estructura(a,b,c,alfa,beta,gamma)==1): return a**3
 
+
+
+#Read the file with the information of the material
+#One line should have the values of sides and angles
+#The others lines should have the wickoff position, the scaterring length and mu^2
 
 def read(archivo="Estructura.txt"):
 	estr=open(archivo,"r")
@@ -55,6 +82,7 @@ def read(archivo="Estructura.txt"):
 	estr.close()
 	return estructura
 
+#From every value of hkl, once the structure is load, the facrot F_s is calculated
 def Factor_s(estructura,h,k,l):
 	parte_real=0
 	parte_imag=0
@@ -64,6 +92,9 @@ def Factor_s(estructura,h,k,l):
 		parte_imag=parte_imag+ float(estructura[i][3])*np.exp(-4*np.pi**2*t_hkl_2(a,b,c,alfa,beta,gamma,h,k,l)*float(estructura[1][4])/2)*np.exp(-4*np.pi**2*t_hkl_2(a,b,c,alfa,beta,gamma,h,k,l)*(float(estructura[i][4])-float(estructura[1][4]))/2)*np.sin(t_x)
 	return (parte_real**2+parte_imag**2)*0.01
 
+#Conversion from Bunge angles to quaternion
+#not sure if work correctly, just used to quickly calculation
+
 def euler2cuat(rotacion):
 	a_1=np.cos(rotacion[1]/2)*np.cos((rotacion[0]+rotacion[2])/2)
 	a_2=-np.sin(rotacion[1]/2)*np.sin((rotacion[0]-rotacion[2])/2)
@@ -72,6 +103,7 @@ def euler2cuat(rotacion):
 	v=[a_1,a_2,a_3,a_4]
 	return quat.quaternion(*v)
 
+# Next two function are the rotacion from Bunge angles and from quaternion
 def rot_euler(haz, rotacion):
 	haz=np.array([0.] + haz)
 	haz = quat.quaternion(*haz)
@@ -86,21 +118,15 @@ def rot_quat(beam, rot):
 	v_prime = rot * beam * np.conjugate(rot)
 	return v_prime.imag
 
-def rot_euler_2(vector,a_e):
-	#a_e=np.array(a_e)
-	#Los angulos en radianes
-	E=np.array([[np.cos(a_e[0])*np.cos(a_e[2])-np.sin(a_e[0])*np.sin(a_e[2])*np.cos(a_e[1]),np.sin(a_e[0])*np.cos(a_e[2])+np.cos(a_e[0])*np.sin(a_e[2])*np.cos(a_e[1]),np.sin(a_e[2])*np.sin(a_e[1])],[np.cos(a_e[0])*np.sin(a_e[2])-np.sin(a_e[0])*np.cos(a_e[2])*np.cos(a_e[1]),-np.sin(a_e[0])*np.sin(a_e[2])+np.cos(a_e[0])*np.cos(a_e[2])*np.cos(a_e[1]),np.cos(a_e[2])*np.sin(a_e[1])],[np.sin(a_e[0])*np.sin(a_e[1]),-np.cos(a_e[0])*np.sin(a_e[1]),np.cos(a_e[1])]])
-	#aux=a_e.transpose().dot(E)
-	aux=np.dot(E,vector)
-	return aux/np.sqrt(aux[0]**2+aux[1]**2+aux[2]**2)
-	#return aux
-
+#lambda_hkl=2*d_hkl*cos(angle between beam and normal)->ang_vextor_normal
 def lam_hkl(vector,h,k,l,t_hkl_2):
 	aux= 2*np.sqrt(1/t_hkl_2)*np.sin(ang_B(vector,h,k,l))
 	return aux
 
+#From the material a list of posible hkl is created, with the value of F_s
+#F_s<0.5 are discarted
+#The list is sorted by F_s value
 def Crear_archivo(estructura):
-	#estructura=read(archivo)
 	salida=open("Lista_hkl.txt",'w')
 	lista=[]
 	for h in range (-10,10):
@@ -111,40 +137,40 @@ def Crear_archivo(estructura):
 				if (aux>0.5):
 					lista.append([aux,h,k,l,t_hkl_2(a,b,c,alfa,beta,gamma,h,k,l)])
 	lista.sort(reverse=True)
-	#lista=lista[::2]
 	for ii in lista:
-		#Estoy imprimiendo Facotor de estructura, h,k,l
+		#Print order: h k l F_s t_hkl # With tabular separation
 		aux=str(ii[1])+"\t"+str(ii[2])+"\t"+str(ii[3])+"\t"+str(ii[0])+"\t"+str(ii[4])+"\n"
 		salida.write(aux)
 	salida.close()
 
+#Enginex
 def t_Enginex(x):
 	return (special.erf((x-1.3934)/0.18492)*(18.94806-10.82914*x)+16.6964*x)/10000
-
+#IMAT
 def tau_i(x):
 	tau_=(418/(1+155.1*np.exp(-4.46*x)))/(14342)
 	return (tau_)
 
 def ang_vector_normal(vector,h,k,l):
-	#print(180/np.pi*np.arccos(np.sqrt((vector[0][0]*h+vector[1][0]*k+vector[2][0]*l)*(vector[0][0]*h+vector[1][0]*k+vector[2][0]*l))/np.sqrt(h**2+k**2+l**2)/np.sqrt(vector[0][0]**2+vector[1][0]**2+vector[2][0]**2)))
 	return np.arccos(np.sqrt((vector[0]*h+vector[1]*k+vector[2]*l)**2)/(np.sqrt(h**2+k**2+l**2)*np.sqrt(vector[0]**2+vector[1]**2+vector[2]**2))-0.0000002)
 
 def ang_B(vector,h,k,l):
-	#print(180/np.pi*np.arccos(np.sqrt((vector[0][0]*h+vector[1][0]*k+vector[2][0]*l)*(vector[0][0]*h+vector[1][0]*k+vector[2][0]*l))/np.sqrt(h**2+k**2+l**2)/np.sqrt(vector[0][0]**2+vector[1][0]**2+vector[2][0]**2)))
 	return np.arcsin(np.sqrt((vector[0]*h+vector[1]*k+vector[2]*l)**2)/(np.sqrt(h**2+k**2+l**2)*np.sqrt(vector[0]**2+vector[1]**2+vector[2]**2))-0.0000002)
 
+#Gaussian contribution to the width of the peaks
+#e-> average elastic deformation of the crystal lattice,
+#n->disorientation of the mosaic glass blocks (mosaicity) 
+#l->divergencia del haz incidente
 def v_hkl(lam_hkl,ang,e,n,l):
-	#print((lam_hkl**2*(e**2+n**2*(np.tan(ang))**2))/10)
 	return lam_hkl*np.sqrt(e**2+(l**2+n**2)*(np.tan(ang))**2)
 
+
+# Important: MAIN FUNCTION
 def P (lam,lam_hkl,v_hkl,tau):
 	if np.sqrt(v_hkl)<0.05*tau:
 		return 1/(2*tau)*np.exp(-(lam-lam_hkl)/tau+v_hkl**2/(2*tau**2))*special.erfc((lam-lam_hkl)/(np.sqrt(2)*v_hkl)-v_hkl/(np.sqrt(2)*tau))
 	else:
-		#print("se ejecuto el else", v_hkl,tau)
 		return 1/(np.sqrt(2*np.pi)*v_hkl)*np.exp(-(lam-lam_hkl)**2/(2*v_hkl**2))
-
-	#return 1/(2*tau)*np.exp(-(lam-lam_hkl)/tau+v_hkl/(2*tau**2))*special.erfc(-(lam-lam_hkl)/(np.sqrt(2*v_hkl))+np.sqrt(v_hkl)/tau)
 	
 
 def Leer_archivo(haz,archivo="Lista_hkl.txt",lam_lim=1.5):
@@ -157,9 +183,15 @@ def Leer_archivo(haz,archivo="Lista_hkl.txt",lam_lim=1.5):
 	entrada.close()		
 	return estructura
 
-def Funcion_pico(h,k,l,haz,lam):
+# For optimization, the values of the main function is calculated only for values near lambda_hkl
+def Funcion_pico(h,k,l,haz,lam,inst):
 	la_hkl=lam_hkl(haz,h,k,l,t_hkl_2(a,b,c,alfa,beta,gamma,h,k,l))
-	tau=t_Enginex(la_hkl) ## cambie el tau
+	if inst==1:
+		tau=t_Enginex(la_hkl)
+	if inst==2:
+		tau=tau_i(la_hkl)
+	if inst==3:
+		tau=t_Enginex(la_hkl) # This need to be implemented
 	vi_hkl=v_hkl(lam_hkl(haz,h,k,l,t_hkl_2(a,b,c,alfa,beta,gamma,h,k,l)),ang_vector_normal(haz,h,k,l),0.0001,(0.4)*np.pi/180,8*np.pi/180)#(9.5/60)*np.pi/180)
 	estructura=[]
 	for i in lam:
@@ -171,15 +203,14 @@ def Funcion_pico(h,k,l,haz,lam):
 			estructura.append(P(i,la_hkl,vi_hkl,tau))
 	return estructura
 
-def mu_hkl (F_s,lam_hkl,ang,v_0):
-	#print(F_s,lam_hkl,v_0,ang,F_s*lam_hkl**4/(2*v_0**2*(np.sin(ang))**2))
-	return 10**8*F_s*10**(-24)*(lam_hkl*10**(-8))**4/(2*(v_0*10**(-24))**2*(np.sin(ang))**2)
-	#return 1
 
+def mu_hkl (F_s,lam_hkl,ang,v_0):
+	return 10**8*F_s*10**(-24)*(lam_hkl*10**(-8))**4/(2*(v_0*10**(-24))**2*(np.sin(ang))**2)
+
+#Simulate one dirrection given by Bunge angles
 def Simular_dir(rotacion,haz,lam,lam_lim=1.5):
 	new_haz=rot_euler(haz,rotacion)
 	estructura=Leer_archivo(new_haz,"Lista_hkl.txt",lam_lim)
-	#print(estructura,len(estructura))
 	p=np.zeros(1000)
 	for i in range(0, len(estructura)):#print(estructura[i][0],estructura[i][1],estructura[i][2],mu_hkl(estructura[i][4],estructura[i][3],ang_vector_normal(rot_euler(new_haz,rotacion),estructura[i][0],estructura[i][1],estructura[i][2]),v_0(a,b,c,alfa,beta,gamma)),lam_hkl(rot_euler(new_haz,rotacion),estructura[i][0],estructura[i][1],estructura[i][2],t_hkl_2(a,b,c,alfa,beta,gamma,estructura[i][0],estructura[i][1],estructura[i][2])))
 		p=p+mu_hkl(estructura[i][4],estructura[i][3],ang_B(new_haz,estructura[i][0],estructura[i][1],estructura[i][2]),v_0(a,b,c,alfa,beta,gamma))*np.array(Funcion_pico(estructura[i][0],estructura[i][1],estructura[i][2],new_haz,lam))
@@ -194,6 +225,7 @@ def Simular_dir(rotacion,haz,lam,lam_lim=1.5):
 		'''
 	return p
 
+# call the main function for every lambda
 def Simular_dir_quat(rot,haz,lam,lam_lim=1.5):
 	new_haz=rot_quat(haz,rot)
 	estructura=Leer_archivo(new_haz,"Lista_hkl.txt",lam_lim)
@@ -202,6 +234,7 @@ def Simular_dir_quat(rot,haz,lam,lam_lim=1.5):
 		p=p+mu_hkl(estructura[i][4],estructura[i][3],ang_B(new_haz,estructura[i][0],estructura[i][1],estructura[i][2]),v_0(a,b,c,alfa,beta,gamma))*np.array(Funcion_pico(estructura[i][0],estructura[i][1],estructura[i][2],new_haz,lam))
 	return p
 
+# This is old, buy i keep it, maybe will be useful
 def Simular_3_dir():
 	
 	haz=np.array([0.7524,0.0183,0.6304])
@@ -221,6 +254,8 @@ def Simular_3_dir():
 	pl.legend(loc='upper left')
 	pl.show()
 	
+
+#Create a list of modes for a powder material
 def Crear_uniforme(resolucion=4):
 	salida=open("modos.txt",'w')
 	for i in range (resolucion,90,resolucion):
@@ -229,6 +264,7 @@ def Crear_uniforme(resolucion=4):
 				aux=str(i)+"\t"+str(j)+"\t"+str(k)+"\t1\n"
 				salida.write(aux)
 	salida.close()
+
 
 def Leer_modos(archivo="modos.txt"):
 	entrada=open(archivo,"r")
@@ -258,6 +294,7 @@ def Funcion_modos(haz):
 	for i,j in enumerate (p):
 		salida.write(str(j)+"\t"+str(lam[i])+"\n")
 
+#Old way to load .mat files
 def Read_ODF(archivo="odf"):
 	mat=scipy.io.loadmat(archivo)
 	#print(mat.keys())
@@ -271,13 +308,12 @@ def Read_ODF(archivo="odf"):
 		q3=datos[0][0][0][0][0][1][0][0][7][0][0][2][0][0][0][0][0][3][ii][0]
 		peso=datos[0][0][0][0][0][2][ii][0]
 		lista.append([peso,q0,q1,q2,q3])
-		#aux=str(q0)+"\t"+str(q1)+"\t"+str(q2)+"\t"+str(q3)+"\t"+str(peso)+"\n"
-		#salida.write(aux)
 	lista.sort(reverse=True)
 	for ii in lista:
 		aux=str(ii[1])+"\t"+str(ii[2])+"\t"+str(ii[3])+"\t"+str(ii[4])+"\t"+str(ii[0])+"\n"
 		salida.write(aux)
 	salida.close
+
 
 def Read_mode_cuat(archivo="modos.txt"):
 	entrada=open(archivo,"r")
@@ -288,6 +324,7 @@ def Read_mode_cuat(archivo="modos.txt"):
 	entrada.close
 	return estructura
 
+#Next two function are old, but they work fine like a example
 def Flor_quat(beam,rot):
 	modos=Read_mode_cuat()
 	p=np.zeros(1000)
@@ -336,32 +373,15 @@ def Flor_quat_2(beam,alpha,beta):
 		salida.write(str(j)+"\t"+str(lam[i])+"\n")
 
 
-def Simular_dir_angles(haz,lam,lam_lim=1.5):
+#The function used in the main code
+def Simular_dir_angles(haz,lam,inst,lam_lim=1.5):
 	estructura=Leer_archivo(haz,"Lista_hkl.txt",lam_lim)
 	p=np.zeros(len(lam))
 	for i in range (0,len(estructura)):
-		p=p+mu_hkl(estructura[i][4],estructura[i][3],ang_B(haz,estructura[i][0],estructura[i][1],estructura[i][2]),v_0(a,b,c,alfa,beta,gamma))*np.array(Funcion_pico(estructura[i][0],estructura[i][1],estructura[i][2],haz,lam))
+		p=p+mu_hkl(estructura[i][4],estructura[i][3],ang_B(haz,estructura[i][0],estructura[i][1],estructura[i][2]),v_0(a,b,c,alfa,beta,gamma))*np.array(Funcion_pico(estructura[i][0],estructura[i][1],estructura[i][2],haz,lam,inst))
 	return p
 
 
-#Crear_archivo(estructura=read())
-#Read_ODF("Cu_Datos/ODF_Cu_NyRTex.mat")
-#print(t_Enginex(2.4135))
-#Flor_quat_2([0,0,1],0,45)
-
-
-#rot=euler2cuat([-np.pi/4,np.pi/2,np.pi/4])
-#Flor_quat([0,1,0],rot)
-
-#Simular_3_dir()
-
-'''
-Crear_uniforme(3)
-
-t_0=tm.time()
-Funcion_modos([1,0,0])
-print(tm.time()-t_0)
-'''
 
 
 
