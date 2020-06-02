@@ -21,10 +21,9 @@ import scipy.io
 
 
 # This import_wizard was created to facilitate the user
-# to import data corresponding to the rotations perfomed
+# to import data corresponding to the cross section without Bragg-Component
 
 # File types recommended are .odf .dat and .txt
-# a special option is enabled to import data created by this tool
 
 # The user is allowed to define the data in each imported column
 
@@ -253,7 +252,7 @@ def import_list_2(num,names,window_2,datos):
 	spn2 = tk.Spinbox(window_2, from_=0, to=num-1)
 	spn2.place(height=20,width=50,x=250,y=140)
 
-	cmb2=ttk.Combobox(window_2, values=["#-rotation","φ","θ","ψ","α","β","other"])
+	cmb2=ttk.Combobox(window_2, values=["Lambda","d-spacing","Cross section (CS)","Cross section (CS)","Bragg component (BC)","CS -BC","CS -CB -ABS","other"])
 	cmb2.place(height=25,width=140,x=190,y=165)
 	cmb2.current(0)
 
@@ -267,23 +266,19 @@ def import_list_2(num,names,window_2,datos):
 
 	def clk3():
 		global datos_finales
-		datos_finales=np.zeros((5,datos.shape[1]))
+		datos_finales=np.zeros((2,datos.shape[1]))
 		
-		for i in range(0,5):
-			for j in range (datos.shape[1]):
-				datos_finales[i][j]=None
-
 		for i in range (num):
-			if names_cols.item(i,option="values")[1]=="φ":
+			if names_cols.item(i,option="values")[1]=="Lambda":
 				datos_finales[0]=datos[i]
-			if names_cols.item(i,option="values")[1]=="θ":
+			if names_cols.item(i,option="values")[1]=="d-spacing":
+				datos_finales[0]=2*np.array(datos[i])
+			if names_cols.item(i,option="values")[1]=="Cross section (CS)":
 				datos_finales[1]=datos[i]
-			if names_cols.item(i,option="values")[1]=="ψ":
-				datos_finales[2]=datos[i]
-			if names_cols.item(i,option="values")[1]=="α":
-				datos_finales[3]=datos[i]
-			if names_cols.item(i,option="values")[1]=="β":
-				datos_finales[4]=datos[i]
+			if names_cols.item(i,option="values")[1]=="Absorption (ABS)":
+				datos_finales[1]+=np.array(datos[i])
+			if names_cols.item(i,option="values")[1]=="CS -CB -ABS":
+				datos_finales[1]+=np.array(datos[i])
 
 	    
 		window_2.quit()

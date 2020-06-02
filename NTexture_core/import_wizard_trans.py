@@ -6,7 +6,6 @@ from tkinter import messagebox
 import sys
 import scipy.io
 
-
 ################################################################
 #        This file is part of NTexture                         #
 #   At the moment you can get the full code at:                #
@@ -21,15 +20,14 @@ import scipy.io
 
 
 # This import_wizard was created to facilitate the user
-# to import data corresponding to the rotations perfomed
+# to import data corresponding to the experimental data
 
 # File types recommended are .odf .dat and .txt
-# a special option is enabled to import data created by this tool
 
 # The user is allowed to define the data in each imported column
 
 
-datos_finales=None   # This global variable will be used by the main code to obtain the rotations
+datos_finales= {}  # This global variable will be used by the main code to the experimental data
 
 def import_list(name):
 
@@ -38,12 +36,6 @@ def import_list(name):
 	window_2.geometry('400x300')
 	window_2.resizable(0,0)
 	window_2.title("Import_wizard")
-
-# Matlab files tend have a rather complicated object list format
-# The chances of reading the file correctly are almost 100%
-# if the user knows the number of columns and rows
-# In case the parameters are unknown to the user,
-# a system was implemented in the function clk1()
 
 	if name[-3:]=="mat":
 		mat=scipy.io.loadmat(name)
@@ -115,15 +107,16 @@ def import_list(name):
 				cols=spn1.get()
 				while len(aux)!=num:
 					aux=aux[0]
-			datos=np.zeros((cols,num))
-			for i in range (cols):
-				for j in range (num):
+			datos={}
+			for i in range (num):
+				datos[i]={}
+				for j in range (cols):
 					try:
-						datos[i][j]=float(aux[j][i])
+						datos[i][j]=aux[i][j]						
 					except:
 						datos[i][j]=0
 			names=None
-			import_list_2(cols,names,window_2,datos)
+			import_list_2(cols,num,names,window_2,datos)
 
 		btn1=tk.Button(window_2,text="Load",command=clk1,fg="red")
 		btn1.place(height=60,width=80,x=310,y=20)
@@ -191,8 +184,6 @@ def import_list(name):
 					sep='\t'
 				else:
 					sep=cmb1.get()
-			data=open(name,"r")
-			lines=data.readlines()
 
 			if ckvar2.get()==True:
 				names=lines[0].strip().split(sep)
@@ -200,6 +191,11 @@ def import_list(name):
 			else:
 				names=None
 				ignore=int(spn1.get())
+
+			ignore=int(spn1.get())
+
+			data=open(name,"r")
+			lines=data.readlines()
 
 			aux=len(lines[ignore+1].strip().split(sep))
 			datos=np.zeros((aux,len(lines)-ignore))
@@ -231,7 +227,7 @@ def import_list(name):
 #In case the information in the column is not relevant, 
 #the user can leave his name blank or assign the option "other"
 
-def import_list_2(num,names,window_2,datos):
+def import_list_2(columms,num,names,window_2,datos):
 	global datos_finales
 	cols=('Columns','Information')
 	names_cols=ttk.Treeview(window_2,columns=cols,show='headings')
@@ -241,19 +237,19 @@ def import_list_2(num,names,window_2,datos):
 	for col in cols:
 		names_cols.heading(col,text=col)
 	if names!=None:
-		for i in range (num):
+		for i in range (columms):
 			names_cols.insert("","end",iid=int(i),values=(i,names[i]))
 	else:
-		for i in range (num):
+		for i in range (columms):
 			names_cols.insert("","end",iid=int(i),values=(i,"-"))
 
 	lbl3=tk.Label(window_2,text="Information in \n column                 is:",anchor=tk.W)
 	lbl3.place(height=60,width=180,x=190,y=110)
 
-	spn2 = tk.Spinbox(window_2, from_=0, to=num-1)
+	spn2 = tk.Spinbox(window_2, from_=0, to=columms-1)
 	spn2.place(height=20,width=50,x=250,y=140)
 
-	cmb2=ttk.Combobox(window_2, values=["#-rotation","φ","θ","ψ","α","β","other"])
+	cmb2=ttk.Combobox(window_2, values=["Lambda","d-spacing","Transmission","other"])
 	cmb2.place(height=25,width=140,x=190,y=165)
 	cmb2.current(0)
 
@@ -267,28 +263,23 @@ def import_list_2(num,names,window_2,datos):
 
 	def clk3():
 		global datos_finales
-		datos_finales=np.zeros((5,datos.shape[1]))
-		
-		for i in range(0,5):
-			for j in range (datos.shape[1]):
-				datos_finales[i][j]=None
+			
+		for i in range(0,num):
+			datos_finales[i]={}
 
-		for i in range (num):
-			if names_cols.item(i,option="values")[1]=="φ":
-				datos_finales[0]=datos[i]
-			if names_cols.item(i,option="values")[1]=="θ":
-				datos_finales[1]=datos[i]
-			if names_cols.item(i,option="values")[1]=="ψ":
-				datos_finales[2]=datos[i]
-			if names_cols.item(i,option="values")[1]=="α":
-				datos_finales[3]=datos[i]
-			if names_cols.item(i,option="values")[1]=="β":
-				datos_finales[4]=datos[i]
-
+		for j in range (columms):
+			if names_cols.item(j,option="values")[1]=="Lambda":
+				for i in range(0,num):
+					datos_finales[i]['lambda']=np.array(datos[i][j])
+			if names_cols.item(j,option="values")[1]=="d-spacing":
+				for i in range(0,num):
+					datos_finales[i]['lambda']=2*np.array(datos[i][j])
+			if names_cols.item(j,option="values")[1]=="Transmission":
+				for i in range(0,num):
+					datos_finales[i]['trans']=np.array(datos[i][j])
 	    
 		window_2.quit()
 		window_2.destroy()
 
 	btn3=tk.Button(window_2,text="Finish",command=clk3,fg="red")
 	btn3.place(height=60,width=100,x=260,y=220)
-

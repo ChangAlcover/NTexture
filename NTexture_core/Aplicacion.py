@@ -18,6 +18,9 @@ import pickle
 import Fs as fs
 import import_wizard as wiz
 import import_wizard_modes as wiz_modes
+import import_wizard_trans as wiz_trans
+import import_wizard_sec as wiz_sec
+
 
 a=1
 b=1
@@ -30,6 +33,14 @@ dir_hkl=0
 modos=0
 direcciones={}
 beam=np.array([0,0,1])
+neutron_path=None
+transmision={}
+sec_no_elas_coh=None
+
+x=None
+y=None
+z=None
+d=0
 
 window= tk.Tk()
 window.geometry('800x600')
@@ -109,18 +120,18 @@ def almost_run():
 		return 0
 
 	lbl23=tk.Label(aplicacion_5,text=str(len(direcciones.keys()))+" rotation directions have been loaded",anchor=tk.W)
-	lbl23.place(height=30,width=280,x=10,y=150)
+	lbl23.place(height=30,width=280,x=460,y=150)
 	lbl24=tk.Label(aplicacion_5,text="Simulate from:                to:",anchor=tk.W)
-	lbl24.place(height=30,width=200,x=10,y=180)
+	lbl24.place(height=30,width=200,x=460,y=180)
 	lbl25=tk.Label(aplicacion_5,text="Please note that the simulation may take time:",anchor=tk.W)
-	lbl25.place(height=30,width=320,x=10,y=210)
+	lbl25.place(height=30,width=320,x=460,y=210)
 
 	
 	spn1 = tk.Spinbox(aplicacion_5, from_=0, to=len(direcciones.keys()),textvariable=var_aux_1)
-	spn1.place(height=30,width=50,x=120,y=180)
+	spn1.place(height=30,width=50,x=570,y=180)
 	var_aux_1.set("0")
 	spn2 = tk.Spinbox(aplicacion_5, from_=0, to=len(direcciones.keys()),textvariable=var_aux_2)
-	spn2.place(height=30,width=50,x=200,y=180)
+	spn2.place(height=30,width=50,x=650,y=180)
 	var_aux_2.set(str(len(direcciones.keys())))
 
 
@@ -349,16 +360,16 @@ def clk_rad1():
 	if radVar1.get()==1:
 		txt20=tk.Entry(aplicacion_5,state=tk.NORMAL)
 		txt20.insert(0, "6")
-		txt20.place(height=30,width=40,x=240,y=10)
+		txt20.place(height=30,width=40,x=250,y=10)
 		btn14=tk.Button(aplicacion_5,text="Load texture",command=clk14,state=tk.DISABLED)
 		btn14.place(height=30,width=100,x=10,y=100)
 	else:
 		txt20=tk.Entry(aplicacion_5,state=tk.DISABLED)
-		txt20.place(height=30,width=40,x=240,y=10)
+		txt20.place(height=30,width=40,x=250,y=10)
 		btn14=tk.Button(aplicacion_5,text="Load texture",command=clk14,state=tk.NORMAL)
 		btn14.place(height=30,width=100,x=10,y=100)
 
-rad1=tk.Radiobutton(aplicacion_5,text="Simulate dust with resolution:              degrees",variable=radVar1,value=1,command=clk_rad1,anchor=tk.W)
+rad1=tk.Radiobutton(aplicacion_5,text="Simulate powder with resolution:              degrees",variable=radVar1,value=1,command=clk_rad1,anchor=tk.W)
 rad1.place(height=30,width=350,x=10,y=10)
 
 rad2=tk.Radiobutton(aplicacion_5,text="Simulate a textured material",variable=radVar1,value=2,command=clk_rad1,anchor=tk.W)
@@ -366,7 +377,7 @@ rad2.place(height=30,width=250,x=10,y=40)
 radVar1.set(2)
 
 txt20=tk.Entry(aplicacion_5,state=tk.DISABLED)
-txt20.place(height=30,width=40,x=240,y=10)
+txt20.place(height=30,width=40,x=250,y=10)
 
 btn14=tk.Button(aplicacion_5,text="Load texture",command=clk14,state=tk.NORMAL)
 btn14.place(height=30,width=100,x=10,y=100)
@@ -624,10 +635,7 @@ cmb20.current(1)
 lbl29=tk.Label(aplicacion_3,text="distance in [cm]",anchor=tk.W)
 lbl29.place(height=30,width=120,x=230,y=10)
 
-x=None
-y=None
-z=None
-d=0
+
 def clk30():
 	global x,y,z,d
 	d=1
@@ -1242,6 +1250,7 @@ btn44.place(height=30,width=40,x=390,y=460)
 # More of the simulation step
 
 def run():
+	global neutron_path
 	if len(direcciones.keys())==0:
 		messagebox.showinfo('Error: One step incomplete','No rotations loaded')
 		return 0
@@ -1251,19 +1260,25 @@ def run():
 		messagebox.showinfo('Error: One step incomplete','No texture loaded')
 		return 0
 
-	for ii in range (int(var_aux_1.get()),int(var_aux_2.get())):
-		alpha=direcciones[ii]['α']
-		beta=direcciones[ii]['β']
-		Beam_rot=np.array([-np.sin(alpha)*np.sin(beta),np.sin(alpha)*np.cos(beta),np.cos(alpha)])
 
-		lbl_run=tk.Label(aplicacion_5,text="The rotation "+str(ii)+" is running",anchor=tk.W)
-		lbl_run.place(height=30,width=320,x=10,y=650)
+
+
+	for ii in range (int(var_aux_1.get()),int(var_aux_2.get())):
+		
+		alpha=1.57075-direcciones[ii]['α']
+		beta=direcciones[ii]['β']+0.7853
+		Beam_rot=np.array([np.sin(alpha),np.cos(alpha)*np.cos(beta),-np.cos(alpha)*np.sin(beta)])
+		
+
+		#lbl_run=tk.Label(aplicacion_5,text="The rotation "+str(ii)+" is running",anchor=tk.W)
+		#lbl_run.place(height=30,width=320,x=10,y=650)
 
 		p=np.zeros(2000)
 		lam=np.linspace(1.5,6.0,2000)
+		
 		for i in range (modos.shape[1]):
-			print(i)
-
+			#print(i)
+			
 			# The progress bar doesnt work, dont konw why
 			#bar = ttk.Progressbar(aplicacion_5, length=100)
 			#bar.place(height=30,width=400,x=10,y=300)
@@ -1272,23 +1287,80 @@ def run():
 
 			r = R.from_quat([modos[1][i], modos[2][i], modos[3][i], modos[4][i]])
 			r=r.inv()
-			aux=r.apply(Beam_rot)
-			
-			#aux=quat.quaternion(*np.array([modos[1][i],modos[2][i],modos[3][i],modos[4][i]]))
-			#aux=aux.inverse
-			#aux=aux*Beam_rot*np.conjugate(aux)
-			#rot=fs.euler2cuat([(alpha+90)*np.pi/180,0,0])
-			#aux=rot*aux*np.conjugate(rot)
-			#rot=fs.euler2cuat([0,(beta)*np.pi/180,0])
-			#posicion_rot=rot*aux*np.conjugate(rot)
+			aux=r.apply(Beam_rot)			
+			p+=modos[0][i]*fs.Simular_dir_angles(aux,lam,radVar2.get())
 
-			p+=modos[0][i]*fs.Simular_dir_angles(aux,lam,radVar2.set())
-		print(p)
-		salida=open("datos"+str(ii)+".txt",'w')
+		salida=open("out/datos"+str(ii)+".txt",'w')
 		for i,j in enumerate (p):
-			salida.write(str(j)+"\t"+str(lam[i])+"\n")
+			salida.write(str(lam[i])+"\t"+str(j/0.0844/2)+"\n")
+		
+		
+
+		if ckvar2.get() and ckvar3.get():
+			if radVar3.get()==1:
+				aux=0
+				lam_lim=10
+				#Only use next line if want skip the main function
+				#lam,p=np.loadtxt("out/datos"+str(ii)+".txt",delimiter="\t",usecols =(0, 1),unpack = True)
+				lambd=transmision[ii]['lambda']
+				while len(lambd)==1:
+					lambd=lambd[0]
+				tr=transmision[ii]['trans']
+				while len(tr)==1:
+					tr=tr[0]
+				for pos,j in enumerate (p):
+					if j<0.001 and aux==0:
+						lam_lim=lam[pos]
+						aux=1
+				count=0
+				dist=0
+				sec_no=fs.interpolacion(sec_no_elas_coh,lambd)
+
+				for pos,j in enumerate (lambd[:-10]):
+					if j>lam_lim and count <20:
+						count+=1
+						dist+=-np.log(float(tr[pos]))/(sec_no[pos]*0.0844)
+				dist=dist/count
+				print(dist)
+				
+				cross_section=np.zeros(tr.shape[0])
+				for pos,j in enumerate(lambd):
+					cross_section[pos]=-np.log(tr[pos])/(dist*0.0844)
+
+				salida_2=open("out/cross_s"+str(ii)+".txt",'w')
+				for i,j in enumerate (cross_section):
+					salida_2.write(str(lambd[i])+"\t"+str(j)+"\n")	
+			
+			if radVar3.get()==2:
+				# using xyz
+				r = R.from_euler("yxz", [alpha*180/3.1415, beta*180/3.1415,0], degrees=True)
+				ea=r.as_quat()
+				ea=np.array([ea[3],ea[0],ea[1],ea[2]])
+				ea=quat.quaternion(*ea)
+				min_x=0
+				max_x=0
+				dist_min=100
+				dist_max=100
+				for i,a in enumerate(x):
+					for j,b in enumerate(a):
+						aux=np.array([0,x[i][j],y[i][j],z[i][j]])
+						aux=quat.quaternion(*aux)
+						aux=ea*aux*np.conjugate(ea)
+						if (aux.y**2+aux.z**2<dist_min and aux.x<0):
+							min_x=aux.x
+							dist_min=aux.y**2+aux.z**2
+						if (aux.y**2+aux.z**2<dist_max and aux.x>0):
+							max_x=aux.x
+							dist_max=aux.y**2+aux.z**2
+				print(max_x-min_x)
+
+			if radVar1.get()==3:
+				#Verify that path is not empty
+				asf=1		
+	
+
 btn_run=tk.Button(aplicacion_5, text="Run", command=run,anchor=tk.W,highlightcolor="red")
-btn_run.place(height=60, width=80,y=340,x=650)
+btn_run.place(height=50, width=80,y=340,x=650)
 
 ckvar2=tk.BooleanVar()
 
@@ -1297,65 +1369,96 @@ radVar3=tk.IntVar() #Beam path in the sample
 ckvar3=tk.BooleanVar() #Include non Bragg componet of cross section
 
 def clks2():
-	a=2
+	asf=1
+	#Load neutron path from a file
 
-
+def clks3():
+	global transmision
+	name=filedialog.askopenfilename(title = "Select file",filetypes = (("MatLab files","*.mat"),("data files","*.dat"),("text files","*.txt"),("all files","*.*")))
+	wiz_trans.import_list(name)
+	transmision=wiz_trans.datos_finales
 
 def clk_rad2():
-	if radVar1.get()==3:
+	if radVar3.get()==3:
 		btns2=tk.Button(aplicacion_5, text="Load", command=clks2,anchor=tk.W,state=tk.NORMAL)
-		btns2.place(height=30, width=80,y=260,x=180)
-	else:
+		btns2.place(height=30, width=80,y=260,x=200)
+		btns3=tk.Button(aplicacion_5, text="Load data", command=clks3,anchor=tk.W,state=tk.DISABLED)
+		btns3.place(height=30, width=100,y=200,x=200)
+	if radVar3.get()==1:
+		btns3=tk.Button(aplicacion_5, text="Load data", command=clks3,anchor=tk.W,state=tk.NORMAL)
+		btns3.place(height=30, width=100,y=200,x=200)
 		btns2=tk.Button(aplicacion_5, text="Load", command=clks2,anchor=tk.W,state=tk.DISABLED)
-		btns2.place(height=30, width=80,y=260,x=180)
+		btns2.place(height=30, width=80,y=260,x=200)
+	if radVar3.get()==2:
+		btns3=tk.Button(aplicacion_5, text="Load data", command=clks3,anchor=tk.W,state=tk.DISABLED)
+		btns3.place(height=30, width=100,y=200,x=200)
+		btns2=tk.Button(aplicacion_5, text="Load", command=clks2,anchor=tk.W,state=tk.DISABLED)
+		btns2.place(height=30, width=80,y=260,x=200)		
 
-rads4=tk.Radiobutton(aplicacion_5,text="Experimental data",variable=radVar1,value=1,command=clk_rad2,anchor=tk.W,state=tk.DISABLED)
+rads4=tk.Radiobutton(aplicacion_5,text="Experimental data",variable=radVar3,value=1,command=clk_rad2,anchor=tk.W,state=tk.DISABLED)
 rads4.place(height=30,width=150,x=30,y=200)
 
-rads5=tk.Radiobutton(aplicacion_5,text="Geometry",variable=radVar1,value=2,command=clk_rad2,anchor=tk.W,state=tk.DISABLED)
+rads5=tk.Radiobutton(aplicacion_5,text="Geometry",variable=radVar3,value=2,command=clk_rad2,anchor=tk.W,state=tk.DISABLED)
 rads5.place(height=30,width=150,x=30,y=230)
 
-rads6=tk.Radiobutton(aplicacion_5,text="External file",variable=radVar1,value=3,command=clk_rad2,anchor=tk.W,state=tk.DISABLED)
+rads6=tk.Radiobutton(aplicacion_5,text="External file",variable=radVar3,value=3,command=clk_rad2,anchor=tk.W,state=tk.DISABLED)
 rads6.place(height=30,width=150,x=30,y=260)
 
-radVar1.set(1)
+radVar3.set(1)
 btns2=tk.Button(aplicacion_5, text="Load", command=clks2,anchor=tk.W,state=tk.DISABLED)
-btns2.place(height=30, width=80,y=260,x=180)
+btns2.place(height=30, width=80,y=260,x=200)
+
+btns3=tk.Button(aplicacion_5, text="Load data", command=clks3,anchor=tk.W,state=tk.DISABLED)
+btns3.place(height=30, width=100,y=200,x=200)
 
 def clk_ckb2():
 	if ckvar2.get():
-		rads4=tk.Radiobutton(aplicacion_5,text="Experimental data",variable=radVar1,value=1,command=clk_rad2,anchor=tk.W,state=tk.NORMAL)
+		rads4=tk.Radiobutton(aplicacion_5,text="Experimental data",variable=radVar3,value=1,command=clk_rad2,anchor=tk.W,state=tk.NORMAL)
 		rads4.place(height=30,width=150,x=30,y=200)
 
-		rads5=tk.Radiobutton(aplicacion_5,text="Geometry",variable=radVar1,value=2,command=clk_rad2,anchor=tk.W,state=tk.NORMAL)
+		rads5=tk.Radiobutton(aplicacion_5,text="Geometry",variable=radVar3,value=2,command=clk_rad2,anchor=tk.W,state=tk.NORMAL)
 		rads5.place(height=30,width=150,x=30,y=230)
 
-		rads6=tk.Radiobutton(aplicacion_5,text="External file",variable=radVar1,value=3,command=clk_rad2,anchor=tk.W,state=tk.NORMAL)
+		rads6=tk.Radiobutton(aplicacion_5,text="External file",variable=radVar3,value=3,command=clk_rad2,anchor=tk.W,state=tk.NORMAL)
 		rads6.place(height=30,width=150,x=30,y=260)
 		clk_rad2()
 	else:
-		rads4=tk.Radiobutton(aplicacion_5,text="Experimental data",variable=radVar1,value=1,command=clk_rad2,anchor=tk.W,state=tk.DISABLED)
+		rads4=tk.Radiobutton(aplicacion_5,text="Experimental data",variable=radVar3,value=1,command=clk_rad2,anchor=tk.W,state=tk.DISABLED)
 		rads4.place(height=30,width=150,x=30,y=200)
 
-		rads5=tk.Radiobutton(aplicacion_5,text="Geometry",variable=radVar1,value=2,command=clk_rad2,anchor=tk.W,state=tk.DISABLED)
+		rads5=tk.Radiobutton(aplicacion_5,text="Geometry",variable=radVar3,value=2,command=clk_rad2,anchor=tk.W,state=tk.DISABLED)
 		rads5.place(height=30,width=150,x=30,y=230)
 
-		rads6=tk.Radiobutton(aplicacion_5,text="External file",variable=radVar1,value=3,command=clk_rad2,anchor=tk.W,state=tk.DISABLED)
+		rads6=tk.Radiobutton(aplicacion_5,text="External file",variable=radVar3,value=3,command=clk_rad2,anchor=tk.W,state=tk.DISABLED)
 		rads6.place(height=30,width=150,x=30,y=260)
 		btns2=tk.Button(aplicacion_5, text="Load", command=clks2,anchor=tk.W,state=tk.DISABLED)
-		btns2.place(height=30, width=80,y=260,x=180)
+		btns2.place(height=30, width=80,y=260,x=200)
 
 
-ckb2=ttk.Checkbutton(aplicacion_5,text="Calculate transmision using beam path in the sample define by:",command=clk_ckb2,variable=ckvar2)
-ckb2.place(height=30,width=500,x=10,y=160)
+ckb2=ttk.Checkbutton(aplicacion_5,text="Calculate transmision using neutron path \n inside the sample define by:",command=clk_ckb2,variable=ckvar2)
+ckb2.place(height=50,width=350,x=10,y=150)
 ckvar2.set(False)
 
 def clk_ckb3():
-	a=1
+	if ckvar3.get():
+		btns4=tk.Button(aplicacion_5, text="Load", command=clks4,anchor=tk.W,state=tk.NORMAL)
+		btns4.place(height=30, width=80,y=300,x=350)
+	else:
+		btns4=tk.Button(aplicacion_5, text="Load", command=clks4,anchor=tk.W,state=tk.DISABLED)
+		btns4.place(height=30, width=80,y=300,x=350)
 
 ckb2=ttk.Checkbutton(aplicacion_5,text="Include non-Bragg component of cross section",command=clk_ckb3,variable=ckvar3)
-ckb2.place(height=30,width=500,x=10,y=300)
+ckb2.place(height=30,width=320,x=10,y=300)
 ckvar3.set(False)
+
+def clks4():
+	global sec_no_elas_coh
+	name=filedialog.askopenfilename(title = "Select file",filetypes = (("text files","*.txt"),("MatLab files","*.mat"),("data files","*.dat"),("all files","*.*")))
+	wiz_sec.import_list(name)
+	sec_no_elas_coh=wiz_sec.datos_finales
+
+btns4=tk.Button(aplicacion_5, text="Load", command=clks4,anchor=tk.W,state=tk.DISABLED)
+btns4.place(height=30, width=80,y=300,x=350)
 
 aplicacion_3.tkraise()
 

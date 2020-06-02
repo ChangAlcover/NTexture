@@ -381,9 +381,14 @@ def Simular_dir_angles(haz,lam,inst,lam_lim=1.5):
 		p=p+mu_hkl(estructura[i][4],estructura[i][3],ang_B(haz,estructura[i][0],estructura[i][1],estructura[i][2]),v_0(a,b,c,alfa,beta,gamma))*np.array(Funcion_pico(estructura[i][0],estructura[i][1],estructura[i][2],haz,lam,inst))
 	return p
 
-
-
-
-
+def interpolacion(sec,lam):
+	sec_new=np.zeros(lam.shape[0])
+	j=0
+	for count,elemt in enumerate(lam):
+		for i in range (j,sec.shape[1]):
+			if elemt>sec[0][i]:
+				j=i
+				sec_new[count]=(sec[1][i+1]-sec[1][i])/(sec[0][i+1]-sec[0][i])*(elemt-sec[0][i])+sec[1][i]
+	return sec_new
 
 
