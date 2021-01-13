@@ -185,6 +185,9 @@ def import_list(name):
 				else:
 					sep=cmb1.get()
 
+			data=open(name,"r")
+			lines=data.readlines()
+
 			if ckvar2.get()==True:
 				names=lines[0].strip().split(sep)
 				ignore=int(spn1.get())+1
@@ -192,7 +195,7 @@ def import_list(name):
 				names=None
 				ignore=int(spn1.get())
 
-			ignore=int(spn1.get())
+
 
 			data=open(name,"r")
 			lines=data.readlines()

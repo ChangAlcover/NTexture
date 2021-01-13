@@ -252,7 +252,7 @@ def import_list_2(num,names,window_2,datos):
 	spn2 = tk.Spinbox(window_2, from_=0, to=num-1)
 	spn2.place(height=20,width=50,x=250,y=140)
 
-	cmb2=ttk.Combobox(window_2, values=["Lambda","d-spacing","Cross section (CS)","Cross section (CS)","Bragg component (BC)","CS -BC","CS -CB -ABS","other"])
+	cmb2=ttk.Combobox(window_2, values=["Lambda","d-spacing","Cross section (CS)","Absorption (ABS)","Bragg component (BC)","CS -BC","CS -BC -ABS","other"])
 	cmb2.place(height=25,width=140,x=190,y=165)
 	cmb2.current(0)
 
@@ -277,7 +277,7 @@ def import_list_2(num,names,window_2,datos):
 				datos_finales[1]=datos[i]
 			if names_cols.item(i,option="values")[1]=="Absorption (ABS)":
 				datos_finales[1]+=np.array(datos[i])
-			if names_cols.item(i,option="values")[1]=="CS -CB -ABS":
+			if names_cols.item(i,option="values")[1]=="CS -BC -ABS":
 				datos_finales[1]+=np.array(datos[i])
 
 	    

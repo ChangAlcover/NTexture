@@ -3,7 +3,7 @@ import scipy.special as special
 import pylab as pl
 import quaternion as quat
 from scipy.spatial.transform import Rotation as R
-import PSpincalc as sp
+#import PSpincalc as sp
 import time as tm
 import Fs as fnc
 import tkinter.ttk as ttk
@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import pickle 
+import lmfit as lm
 
 import Fs as fs
 import import_wizard as wiz
@@ -21,6 +22,7 @@ import import_wizard_modes as wiz_modes
 import import_wizard_trans as wiz_trans
 import import_wizard_sec as wiz_sec
 
+radius=6
 
 a=1
 b=1
@@ -28,6 +30,7 @@ c=1
 alfa=90
 beta=90
 gamma=90
+
 estructura=0
 dir_hkl=0
 modos=0
@@ -36,6 +39,14 @@ beam=np.array([0,0,1])
 neutron_path=None
 transmision={}
 sec_no_elas_coh=None
+function_base={}
+datos_ajuste=None
+sec_powder=0
+sec_no_elas=0
+
+ND=np.array([0,0,1])
+LD=np.array([0,1,0])
+TD=np.array([1,0,0])
 
 x=None
 y=None
@@ -45,7 +56,7 @@ d=0
 window= tk.Tk()
 window.geometry('800x600')
 window.resizable(0,0)
-window.title("Need a name")
+window.title("NTexture")
 
 ##Define the fundamental steps
 
@@ -59,6 +70,8 @@ aplicacion_4=tk.LabelFrame(window,text="Beam direction")
 aplicacion_4.place(height=525,width=800,x=0,y=70)
 aplicacion_5=tk.LabelFrame(window,text="Simulations")
 aplicacion_5.place(height=415,width=800,x=0,y=180)
+aplicacion_6=tk.LabelFrame(window,text="Adjust")
+aplicacion_6.place(height=525,width=800,x=0,y=70)
 
 aplicacion_top_1=tk.LabelFrame(window,text="Main steps")
 aplicacion_top_1.place(height=70,width=550,x=0,y=0)
@@ -80,12 +93,17 @@ def clk3():
 	aplicacion_5.tkraise()
 def clk3_1():
 	aplicacion_4.tkraise()
-btn1=tk.Button(aplicacion_top_2, text="Generate strucuture", command=clk1,anchor=tk.W,highlightcolor="red")
+def clk1_1():
+	aplicacion_6.tkraise()
+	aplicacion_6_raise()
+btn1=tk.Button(aplicacion_top_2, text="Generate\n strucuture", command=clk1,anchor=tk.W,highlightcolor="red")
+btn1_1=tk.Button(aplicacion_top_2, text="Adjust\n function", command=clk1_1,anchor=tk.W,highlightcolor="red")
 btn2=tk.Button(aplicacion_top_1, text="Geometry", command=clk2,anchor=tk.W,highlightcolor="red")
 btn3=tk.Button(aplicacion_top_1, text="Simulations", command=clk3,anchor=tk.W,highlightcolor="red")
 btn3_1=tk.Button(aplicacion_top_1, text="Beam", command=clk3_1,anchor=tk.W,highlightcolor="red")
 
-btn1.place(height=25, width=200,y=5,x=20)
+btn1.place(height=45, width=90,y=0,x=20)
+btn1_1.place(height=45, width=90,y=0,x=130)
 
 btn2.place(height=30, width=140,y=5,x=20)
 btn3.place(height=30, width=140,y=5,x=340)
@@ -110,9 +128,58 @@ btn1.bind("<Button-3>",Structure_help)
 
 var_aux_1=tk.StringVar()
 var_aux_2=tk.StringVar()
+var_aux_modes=tk.StringVar()
+var_aux_weigth=tk.StringVar()
+
+
+def clk_rad4():
+	global radm3, radm4,spn3,spn4,radVar4
+	aux=0
+	list_aux=[]
+	for i in range (modos.shape[1]):
+		aux+=modos[0][i]
+		list_aux.append(aux)
+	def link_weight_3():
+		var_aux_weigth.set(list_aux[int(var_aux_modes.get())])
+	def link_weight_4():
+		var_aux_modes.set(list_aux.index(float(var_aux_weigth.get())))
+
+
+	if radVar4.get()==1:
+		radm3=tk.Radiobutton(aplicacion_5,text="mode number:",variable=radVar4,value=3,command=clk_rad4,anchor=tk.W,state=tk.DISABLED)
+		radm3.place(height=30,width=30,x=560,y=280)
+		radm4=tk.Radiobutton(aplicacion_5,text="weigth in modes:: ",variable=radVar4,value=4,command=clk_rad4,anchor=tk.W,state=tk.DISABLED)
+		radm4.place(height=30,width=30,x=560,y=310)
+		spn3 = tk.Spinbox(aplicacion_5, from_=0, to=modos.shape[1],textvariable=var_aux_modes,state=tk.DISABLED,command=link_weight_3)
+		spn3.place(height=30,width=70,x=720,y=280)
+		spn4 = tk.Spinbox(aplicacion_5, values=tuple(list_aux),textvariable=var_aux_weigth,state=tk.DISABLED,command=link_weight_4)
+		spn4.place(height=30,width=70,x=720,y=310)
+	if radVar4.get()==2:
+		radm3=tk.Radiobutton(aplicacion_5,text="mode number:",variable=radVar4,value=3,command=clk_rad4,anchor=tk.W,state=tk.NORMAL)
+		radm3.place(height=30,width=300,x=560,y=280)
+		radm4=tk.Radiobutton(aplicacion_5,text="weigth in modes:: ",variable=radVar4,value=4,command=clk_rad4,anchor=tk.W,state=tk.NORMAL)
+		radm4.place(height=30,width=300,x=560,y=310)
+		spn3 = tk.Spinbox(aplicacion_5, from_=0, to=modos.shape[1],textvariable=var_aux_modes,state=tk.NORMAL,command=link_weight_3)
+		spn3.place(height=30,width=70,x=720,y=280)
+		spn4 = tk.Spinbox(aplicacion_5, values=tuple(list_aux),textvariable=var_aux_weigth,state=tk.NORMAL,command=link_weight_4)
+		spn4.place(height=30,width=70,x=720,y=310)
+		radVar4.set(3)
+	if radVar4.get()==3:
+		spn3 = tk.Spinbox(aplicacion_5, from_=0, to=modos.shape[1],textvariable=var_aux_modes,state=tk.NORMAL,command=link_weight_3)
+		spn3.place(height=30,width=70,x=720,y=280)
+		spn4 = tk.Spinbox(aplicacion_5, values=tuple(list_aux),textvariable=var_aux_weigth,state=tk.NORMAL,command=link_weight_4)
+		spn4.place(height=30,width=70,x=720,y=310)
+	if radVar4.get()==4:
+		spn3 = tk.Spinbox(aplicacion_5, from_=0, to=modos.shape[1],textvariable=var_aux_modes,state=tk.NORMAL,command=link_weight_3)
+		spn3.place(height=30,width=70,x=720,y=280)
+		spn4 = tk.Spinbox(aplicacion_5, values=tuple(list_aux),textvariable=var_aux_weigth,state=tk.NORMAL,command=link_weight_4)
+		spn4.place(height=30,width=70,x=720,y=310)	
+	
+
+radVar4=tk.IntVar() #To know if is all the modes will be used
 
 def almost_run():
-	global var_aux_1,var_aux_2
+	global var_aux_1,var_aux_2, radVar4
 	lbl22=tk.Label(aplicacion_5,text="Texture loaded with success",anchor=tk.W)
 	lbl22.place(height=30,width=200,x=130,y=100)
 	if len(direcciones.keys())==0:
@@ -123,16 +190,33 @@ def almost_run():
 	lbl23.place(height=30,width=280,x=460,y=150)
 	lbl24=tk.Label(aplicacion_5,text="Simulate from:                to:",anchor=tk.W)
 	lbl24.place(height=30,width=200,x=460,y=180)
-	lbl25=tk.Label(aplicacion_5,text="Please note that the simulation may take time:",anchor=tk.W)
-	lbl25.place(height=30,width=320,x=460,y=210)
+	lbl25=tk.Label(aplicacion_5,text="Please note that the simulation may take time", fg="red",anchor=tk.W)
+	lbl25.place(height=30,width=320,x=260,y=360)
 
-	
 	spn1 = tk.Spinbox(aplicacion_5, from_=0, to=len(direcciones.keys()),textvariable=var_aux_1)
 	spn1.place(height=30,width=50,x=570,y=180)
 	var_aux_1.set("0")
 	spn2 = tk.Spinbox(aplicacion_5, from_=0, to=len(direcciones.keys()),textvariable=var_aux_2)
 	spn2.place(height=30,width=50,x=650,y=180)
 	var_aux_2.set(str(len(direcciones.keys())))
+
+	lbl23_2=tk.Label(aplicacion_5,text="The texture loaded have " +str(modos.shape[1])+" modes:",anchor=tk.W)
+	lbl23_2.place(height=30,width=250,x=460,y=220)
+
+
+	radm1=tk.Radiobutton(aplicacion_5,text="Use all the modes",variable=radVar4,value=1,command=clk_rad4,anchor=tk.W)
+	radm1.place(height=30,width=150,x=460,y=250)
+
+	radm2=tk.Radiobutton(aplicacion_5,text="Use until: ",variable=radVar4,value=2,command=clk_rad4,anchor=tk.W)
+	radm2.place(height=30,width=100,x=460,y=280)
+
+	radm3=tk.Radiobutton(aplicacion_5,text="mode number:",variable=radVar4,value=3,command=clk_rad4,anchor=tk.W,state=tk.DISABLED)
+	radm3.place(height=30,width=100,x=560,y=280)
+
+	radm4=tk.Radiobutton(aplicacion_5,text="weigth in modes:: ",variable=radVar4,value=4,command=clk_rad4,anchor=tk.W,state=tk.DISABLED)
+	radm4.place(height=30,width=100,x=560,y=310)
+
+	radVar4.set(1)
 
 
 
@@ -428,9 +512,7 @@ btns1.place(height=30,width=50,x=600,y=100)
 
 ##Geometry section
 
-RD=np.array([1,0,0])
-LD=np.array([0,1,0])
-TD=np.array([0,0,1])
+
 def cylinder (r,h):
 	u = np.linspace(0, 2 * np.pi, 100)
 	H=np.linspace(0,h,100)
@@ -503,33 +585,33 @@ def cone(r,h):
 	#ax.plot_surface(x, y, z, color='b')
 
 def orthohedron(a,b,c):
-	A=np.linspace(0,a,100)
-	B=np.linspace(0,b,100)
-	C=np.linspace(0,c,100)
+	A=np.linspace(0,a,200)
+	B=np.linspace(0,b,200)
+	C=np.linspace(0,c,200)
 
-	x_1=np.outer(np.ones(100),0*np.ones(100))
-	y_1=np.outer(B,np.ones(100))
-	z_1=np.outer(np.ones(100),C)
+	x_1=np.outer(np.ones(200),0*np.ones(200))
+	y_1=np.outer(B,np.ones(200))
+	z_1=np.outer(np.ones(200),C)
 
-	x_2=np.outer(np.ones(100),a*np.ones(100))
-	y_2=np.outer(B,np.ones(100))
-	z_2=np.outer(np.ones(100),C)
+	x_2=np.outer(np.ones(200),a*np.ones(200))
+	y_2=np.outer(B,np.ones(200))
+	z_2=np.outer(np.ones(200),C)
 
-	x_3=np.outer(np.ones(100),A)
-	y_3=np.outer(np.ones(100),0*np.ones(100))
-	z_3=np.outer(C,np.ones(100))
+	x_3=np.outer(np.ones(200),A)
+	y_3=np.outer(np.ones(200),0*np.ones(200))
+	z_3=np.outer(C,np.ones(200))
 
-	x_4=np.outer(np.ones(100),A)
-	y_4=np.outer(np.ones(100),b*np.ones(100))
-	z_4=np.outer(C,np.ones(100))
+	x_4=np.outer(np.ones(200),A)
+	y_4=np.outer(np.ones(200),b*np.ones(200))
+	z_4=np.outer(C,np.ones(200))
 
-	x_5=np.outer(A,np.ones(100))
-	y_5=np.outer(np.ones(100),B)
-	z_5=np.outer(np.ones(100),0*np.ones(100))
+	x_5=np.outer(A,np.ones(200))
+	y_5=np.outer(np.ones(200),B)
+	z_5=np.outer(np.ones(200),0*np.ones(200))
 
-	x_6=np.outer(A,np.ones(100))
-	y_6=np.outer(np.ones(100),B)
-	z_6=np.outer(np.ones(100),c*np.ones(100))
+	x_6=np.outer(A,np.ones(200))
+	y_6=np.outer(np.ones(200),B)
+	z_6=np.outer(np.ones(200),c*np.ones(200))
 
 	x=np.concatenate((x_1,x_2,x_3,x_4,x_5,x_6),axis=0)
 	y=np.concatenate((y_1,y_2,y_3,y_4,y_5,y_6),axis=0)
@@ -889,10 +971,10 @@ cmb21.current(0)
 
 
 def clk32():
-	if cmb21.get()=="RD":
-		RD[0]=float(txt41.get())
-		RD[1]=float(txt42.get())
-		RD[2]=float(txt43.get())
+	if cmb21.get()=="ND":
+		ND[0]=float(txt41.get())
+		ND[1]=float(txt42.get())
+		ND[2]=float(txt43.get())
 	if cmb21.get()=="LD":
 		LD[0]=float(txt41.get())
 		LD[1]=float(txt42.get())
@@ -906,21 +988,21 @@ btn32=tk.Button(aplicacion_3,text="Fix \n values",command=clk32,fg="red")
 btn32.place(height=80,width=60,x=310,y=320)
 
 def clk33():
-	np.savez('New_geometry',x=x,y=y,z=z,RD=RD,LD=LD,TD=TD)
+	np.savez('New_geometry',x=x,y=y,z=z,ND=ND,LD=LD,TD=TD)
 	
 
 btn33=tk.Button(aplicacion_3,text="Save geometry",command=clk33,fg="red")
 btn33.place(height=30,width=120,x=20,y=410)
 
 def clk34():
-	global x,y,z,RD,LD,TD,d
+	global x,y,z,ND,LD,TD,d
 	name=filedialog.askopenfilename(title = "Select file",filetypes = (("geometry files","*.npz"),("all files","*.*")))
 	try:
 		aux=np.load(name)
 		x=aux['x']
 		y=aux['y']
 		z=aux['z']
-		RD=aux['RD']
+		ND=aux['ND']
 		LD=aux['LD']
 		TD=aux["TD"]
 		d=1
@@ -970,7 +1052,7 @@ def clk_cmb41(event):
 		lbl68.place(height=30,width=50,x=210,y=100)
 
 	if cmb41.get()=="cosine directors in the sample system":
-		lbl66=tk.Label(aplicacion_4,text="cos(RD):",anchor=tk.W)
+		lbl66=tk.Label(aplicacion_4,text="cos(ND):",anchor=tk.W)
 		lbl66.place(height=30,width=50,x=10,y=100)
 		lbl67=tk.Label(aplicacion_4,text="cos(TD):",anchor=tk.W)
 		lbl67.place(height=30,width=50,x=110,y=100)
@@ -1015,7 +1097,7 @@ def clk40():
 	if cmb41.get()=="cosine directors in the laboratory system":
 		beam=np.array([a1,a2,a3])
 	if cmb41.get()=="cosine directors in the sample system":
-		beam=np.array([a1*(RD[0]+TD[0]+LD[0]),a2*(RD[1]+TD[1]+LD[1]),a3*(RD[2]+TD[2]+LD[2])])
+		beam=np.array([a1*(ND[0]+TD[0]+LD[0]),a2*(ND[1]+TD[1]+LD[1]),a3*(ND[2]+TD[2]+LD[2])])
 
 	if d==1:
 		figure=plt.Figure(figsize=(6,5),dpi=100)
@@ -1028,7 +1110,7 @@ def clk40():
 					a5=float(txt68.get())
 					a6=float(txt69.get())
 				except:
-					messagebox.showinfo('Error: Not enough data','Please, we need the value of each coordinates')
+					messagebox.showinfo('Error: Not enough data','Please, we need the value of each cooNDinates')
 		else:
 			a4=0
 			a5=0
@@ -1155,7 +1237,7 @@ def clk41():
 			a3=float(txt66.get())
 		except:
 			messagebox.showinfo('Error: Not enough data','Please, we need the value of each angle')
-		i=str(len(direcciones.keys())+1)
+		i=str(len(direcciones.keys()))
 		direcciones[i]={'#':int(i),'φ':a1,'θ':a2,'ψ':a3,'α':None,'β':None}
 		list_dirc.insert("","end",iid=int(i),values=(i,a1,a2,a3,None,None))
 	else:
@@ -1164,7 +1246,7 @@ def clk41():
 			a2=float(txt65.get())
 		except:
 			messagebox.showinfo('Error: Not enough data','Please, we need the value of each angle')
-		i=str(len(direcciones.keys())+1)
+		i=str(len(direcciones.keys()))
 		direcciones[i]={'#':int(i),'φ':None,'θ':None,'ψ':None,'α':a1,'β':a2}
 		list_dirc.insert("","end",iid=int(i),values=(i,None,None,None,a1,a2))
 
@@ -1222,7 +1304,7 @@ btn42.place(height=30,width=80,x=620,y=370)
 lbl80=tk.Label(aplicacion_4,text="Save the list of rotation",anchor=tk.W)
 lbl80.place(height=30,width=500,x=350,y=420)
 
-lbl79=tk.Label(aplicacion_4,text="Click            to use the \"Wizard-import\" to  load a list of rotation",anchor=tk.W)
+lbl79=tk.Label(aplicacion_4,text="Click            to use the \"WizaND-import\" to  load a list of rotation",anchor=tk.W)
 lbl79.place(height=30,width=500,x=350,y=460)
 
 def clk43():
@@ -1250,7 +1332,7 @@ btn44.place(height=30,width=40,x=390,y=460)
 # More of the simulation step
 
 def run():
-	global neutron_path
+	global neutron_path,radius
 	if len(direcciones.keys())==0:
 		messagebox.showinfo('Error: One step incomplete','No rotations loaded')
 		return 0
@@ -1260,64 +1342,105 @@ def run():
 		messagebox.showinfo('Error: One step incomplete','No texture loaded')
 		return 0
 
-
-
-
 	for ii in range (int(var_aux_1.get()),int(var_aux_2.get())):
 		
-		alpha=1.57075-direcciones[ii]['α']
-		beta=direcciones[ii]['β']+0.7853
-		Beam_rot=np.array([np.sin(alpha),np.cos(alpha)*np.cos(beta),-np.cos(alpha)*np.sin(beta)])
+		alpha=direcciones[str(ii)]['α']*np.pi/180
 		
+		beta=direcciones[str(ii)]['β']*np.pi/180
+		#Beam_rot=np.array([np.sin(alpha),np.cos(alpha)*np.cos(beta),-np.cos(alpha)*np.sin(beta)])
+		
+		Beam_rot=np.cos(alpha)*ND+np.sin(alpha)*np.sin(beta)*LD-np.sin(alpha)*np.cos(beta)*TD
 
 		#lbl_run=tk.Label(aplicacion_5,text="The rotation "+str(ii)+" is running",anchor=tk.W)
 		#lbl_run.place(height=30,width=320,x=10,y=650)
 
 		p=np.zeros(2000)
+		p_aux_2=np.zeros((modos.shape[1],2000))
 		lam=np.linspace(1.5,6.0,2000)
 		
-		for i in range (modos.shape[1]):
-			#print(i)
+		if radVar4.get()==1:
 			
-			# The progress bar doesnt work, dont konw why
-			#bar = ttk.Progressbar(aplicacion_5, length=100)
-			#bar.place(height=30,width=400,x=10,y=300)
-			#if i%(modos.shape[1]//10)==0:
-			#	bar['value']=int(i*100/modos.shape[1])
+			for i in range (modos.shape[1]):
+				print(i)
+				
+				# The progress bar doesnt work, dont konw why
+				#bar = ttk.Progressbar(aplicacion_5, length=100)
+				#bar.place(height=30,width=400,x=10,y=300)
+				#if i%(modos.shape[1]//10)==0:
+				#	bar['value']=int(i*100/modos.shape[1])
+				if modos.shape[0]==5:
+					r = R.from_quat([modos[1][i], modos[2][i], modos[3][i], modos[4][i]])
+				if modos.shape[0]==4:
+					r= R.from_euler('zxz',[modos[1][i],modos[2][i],modos[3][i]],degrees=True)
+				if modos.shape[0]==6:
+					r= R.from_euler('zxz',[modos[1][i],modos[2][i],modos[3][i]],degrees=True)	
+					radius=modos[5][i]	
+				r=r.inv()
+				
+				aux=r.apply(Beam_rot)
+				
 
-			r = R.from_quat([modos[1][i], modos[2][i], modos[3][i], modos[4][i]])
-			r=r.inv()
-			aux=r.apply(Beam_rot)			
-			p+=modos[0][i]*fs.Simular_dir_angles(aux,lam,radVar2.get())
+				p_aux_2[i]=fs.Simular_dir_angles(aux,lam,radVar2.get(),radius)
+				p+=modos[0][i]*p_aux_2[i]
 
-		salida=open("out/datos"+str(ii)+".txt",'w')
-		for i,j in enumerate (p):
-			salida.write(str(lam[i])+"\t"+str(j/0.0844/2)+"\n")
+			salida=open("out/datos"+str(ii)+".txt",'w')
+			for i,j in enumerate (p):
+				salida.write(str(lam[i])+"\t"+str(j)+"\n")
+			salida=open("out/modes"+str(ii)+".txt",'w')
+			for i in range (2000):
+				salida.write(str(lam[i]))
+				for j in range (modos.shape[1]):
+					salida.write("\t"+str(p_aux_2[j][i]))
+				salida.write("\n")
+
+			
+		else:
+			#radVar4.get()
+			p_aux=np.zeros(2000)
+			for a in range (4,180,4):
+				for b in range (4,180,4):
+					for c in range (4,180,4):
+						r = R.from_euler("zxz", [a,b,c], degrees=True)
+						r=r.inv()
+						aux=r.apply(Beam_rot)
+						p_aux+=1/79507*fs.Simular_dir_angles(aux,lam,radVar2.get())
+			p=(1-float(var_aux_weigth.get()))*p_aux
+			for i in range (0,int(var_aux_modes)):
+				r = R.from_quat([modos[1][i], modos[2][i], modos[3][i], modos[4][i]])
+				r=r.inv()
+				aux=r.apply(Beam_rot)			
+				p+=modos[0][i]*fs.Simular_dir_angles(aux,lam,radVar2.get())
+
+			salida=open("out/datos"+str(ii)+"mod"+str(var_aux_modes)+".txt",'w')
+			for i,j in enumerate (p):
+				salida.write(str(lam[i])+"\t"+str(j/0.0844/2)+"\n")
+
+
 		
-		
-
 		if ckvar2.get() and ckvar3.get():
 			if radVar3.get()==1:
 				aux=0
 				lam_lim=10
 				#Only use next line if want skip the main function
 				#lam,p=np.loadtxt("out/datos"+str(ii)+".txt",delimiter="\t",usecols =(0, 1),unpack = True)
-				lambd=transmision[ii]['lambda']
+				#lambd=transmision[ii]['lambda']
 				while len(lambd)==1:
 					lambd=lambd[0]
 				tr=transmision[ii]['trans']
 				while len(tr)==1:
 					tr=tr[0]
+				
 				for pos,j in enumerate (p):
 					if j<0.001 and aux==0:
 						lam_lim=lam[pos]
 						aux=1
+
 				count=0
 				dist=0
 				sec_no=fs.interpolacion(sec_no_elas_coh,lambd)
 
 				for pos,j in enumerate (lambd[:-10]):
-					if j>lam_lim and count <20:
+					if j>lam_lim and count <200:
 						count+=1
 						dist+=-np.log(float(tr[pos]))/(sec_no[pos]*0.0844)
 				dist=dist/count
@@ -1330,28 +1453,30 @@ def run():
 				salida_2=open("out/cross_s"+str(ii)+".txt",'w')
 				for i,j in enumerate (cross_section):
 					salida_2.write(str(lambd[i])+"\t"+str(j)+"\n")	
-			
+				
 			if radVar3.get()==2:
-				# using xyz
-				r = R.from_euler("yxz", [alpha*180/3.1415, beta*180/3.1415,0], degrees=True)
-				ea=r.as_quat()
-				ea=np.array([ea[3],ea[0],ea[1],ea[2]])
-				ea=quat.quaternion(*ea)
+				
+				
+				#Other method to be sure
+				r = R.from_euler("zxz", [0,beta*180/3.1415,(alpha)*180/3.1415], degrees=True)
+				r=R.inv(r)
+
 				min_x=0
 				max_x=0
 				dist_min=100
 				dist_max=100
 				for i,a in enumerate(x):
 					for j,b in enumerate(a):
-						aux=np.array([0,x[i][j],y[i][j],z[i][j]])
-						aux=quat.quaternion(*aux)
-						aux=ea*aux*np.conjugate(ea)
-						if (aux.y**2+aux.z**2<dist_min and aux.x<0):
-							min_x=aux.x
-							dist_min=aux.y**2+aux.z**2
-						if (aux.y**2+aux.z**2<dist_max and aux.x>0):
-							max_x=aux.x
-							dist_max=aux.y**2+aux.z**2
+						aux=np.array([x[i][j],y[i][j],z[i][j]])
+												
+						aux=r.apply(aux)
+						if aux[2]**2+aux[1]**2<dist_min and aux[0]<0:
+							dist_min=aux[2]**2+aux[1]**2
+							min_x=aux[0]
+						if aux[2]**2+aux[1]**2<dist_max and aux[0]>0:
+							dist_max=aux[2]**2+aux[1]**2
+							max_x=aux[0]
+									
 				print(max_x-min_x)
 
 			if radVar1.get()==3:
@@ -1468,6 +1593,233 @@ bar1=FigureCanvasTkAgg(figure,aplicacion_3)
 bar1.get_tk_widget().place(height=350,width=350,x=400,y=10)
 ax=figure.add_subplot(111,projection='3d')
 
+
+## Aplicacion_6 Adjust function to transmission
+
+
+def aplicacion_6_raise():
+	if len (direcciones.keys())==0:
+		lbl6_1=tk.Label(aplicacion_6,text="Directions need to be loaded (Go to BEAM section, to do it )",fg="red",anchor=tk.W)
+		lbl6_1.place(height=30,width=450,x=10,y=10)
+	else:
+		lbl6_1=tk.Label(aplicacion_6,text=str(len(direcciones.keys()))+" rotation directions have been loaded",anchor=tk.W)
+		lbl6_1.place(height=30,width=450,x=10,y=10)
+	if estructura==0:
+		lbl6_2=tk.Label(aplicacion_6,text="Structure need to be loaded (Go to SIMULATION section, to do it )",fg="red",anchor=tk.W)
+		lbl6_2.place(height=30,width=450,x=10,y=40)
+	else:
+		lbl6_2=tk.Label(aplicacion_6,text="Structure loaded successfully",anchor=tk.W)
+		lbl6_2.place(height=30,width=450,x=10,y=40)	
+	if len (transmision.keys())==0:
+		lbl6_3=tk.Label(aplicacion_6,text="Experimental data need to be loaded",fg="red",anchor=tk.W)
+		lbl6_3.place(height=30,width=300,x=10,y=70)
+		btn6_1=tk.Button(aplicacion_6, text="Load", command=clk6_1,anchor=tk.W,state=tk.NORMAL)
+		btn6_1.place(height=30, width=80,y=70,x=310)
+	else:
+		lbl6_3=tk.Label(aplicacion_6,text="Experimental data loaded successfully",anchor=tk.W)
+		lbl6_3.place(height=30,width=300,x=10,y=70)
+		btn6_1=tk.Button(aplicacion_6, text="Load", command=clk6_1,anchor=tk.W,state=tk.DISABLED)
+		btn6_1.place(height=30, width=80,y=70,x=310)
+
+	lbl6_4=tk.Label(aplicacion_6,text="Base of functions are needed",fg="red",anchor=tk.W)
+	lbl6_4.place(height=30,width=300,x=10,y=110)
+	btn6_2=tk.Button(aplicacion_6, text="Generate", command=clk6_2,anchor=tk.W,state=tk.NORMAL)
+	btn6_2.place(height=30, width=80,y=110,x=310)	
+	btn6_3=tk.Button(aplicacion_6, text="Load", command=clk6_3,anchor=tk.W,state=tk.NORMAL)
+	btn6_3.place(height=30, width=80,y=110,x=410)		
+
+def clk6_1():
+	global datos_ajuste
+	aux=filedialog.askopenfilenames(title="Select files", filetypes=(("text files","*.txt"),("data files","*.dat"),("all files","*.*")))
+	aux=list(aux)
+	aux_2=np.loadtxt(aux[0],delimiter='\t')
+	datos_ajuste=np.zeros((len(aux),len(aux_2)))
+	for i,elemt in enumerate(aux):
+		aux_2=np.loadtxt(elemt,delimiter='\t')
+		for j in range (len(aux_2)):
+			datos_ajuste[i][j]=aux_2[j] #Need to change this, to a import wizard
+
+		
+
+
+def clk6_2():
+
+	for ii in range (len(direcciones.keys())):
+		
+		alpha=direcciones[ii]['α']
+		beta=direcciones[ii]['β']
+
+		Beam_rot=np.cos(alpha)*ND+np.sin(alpha)*np.cos(beta)*LD+np.sin(alpha)*np.sin(beta)*TD
+
+		lam=np.array(transmision[ii]['lambda'][0])
+		p=np.zeros(lam.shape[0])
+
+		base_function=np.zeros((modos.shape[1],lam.shape[0]))
+
+		for i in range (modos.shape[1]):
+				
+			r = R.from_quat([modos[1][i], modos[2][i], modos[3][i], modos[4][i]])
+			r=r.inv()
+			aux=r.apply(Beam_rot)			
+			p_aux=fs.Simular_dir_angles(aux,lam,radVar2.get())
+			for j in range (lam.shape[0]):
+				base_function[i][j]=p_aux[j]/0.0844/2
+			p+=p_aux*modos[0][i]
+
+		np.savetxt("Adjust/Base/Base"+str(ii)+".csv",base_function,delimiter=',')
+		#data=np.loadtxt("Adjust/Base/Base"+str(ii)+".csv",delimiter=',')
+
+		salida=open("Adjust/Experimental/datos"+str(ii)+".txt",'w')
+		for i,j in enumerate (p):
+			salida.write(str(lam[i])+"\t"+str(j/0.0844/2)+"\n")
+def clk6_3():
+	global function_base
+	aux=filedialog.askopenfilenames(title="Select files", filetypes=(("Function base","*.csv"),("data files","*.dat"),("all files","*.*")))
+	aux=list(aux)
+	for i,elemt in enumerate(aux):
+		print(i)
+		function_base[str(i)]=np.loadtxt(elemt,delimiter=',')
+
+
+
+def funct_ajuste(params,exp, data=[]):
+	aux=np.zeros((len(exp.keys()),exp['1'].shape[1]))
+	for i,ii in enumerate(exp.keys()):
+		datos=exp[ii]	
+		for j in range (datos.shape[0]):
+			aux[i]+=params["C"+str(j)].value*datos[j]
+	if data==[]:
+		return aux
+	return data-aux
+
+ckvar_ajuste=tk.BooleanVar()
+ckvar_no_elast=tk.BooleanVar()
+
+def ajuste_run():
+
+	if ckvar_no_elast.get():
+		for i in range (datos_ajuste.shape[0]):
+			for j in range(datos_ajuste.shape[1]):
+				datos_ajuste[i][j]=datos_ajuste[i][j]-sec_no_elas[j]
+	modes=int(modes_adjust.get())
+	print(modes,len(modes_init))
+	fit_params=lm.Parameters()
+	if ckvar_modes_init.get():
+		for j in range(len(modes_init)):
+			fit_params.add("C"+str(j),value=float(modes_init[j]),min=0,max=0.1)
+		for j in range (len(modes_init),modes):
+			fit_params.add("C"+str(j),value=0.001,min=0,max=0.1)
+	else:
+		for j in range (modes):
+			fit_params.add("C"+str(j),value=0.01,min=0,max=0.1)
+	fit_params.add("C"+str(modes),value=0.5,min=0,max=1)
+	function_base_parcial={}
+	for i,ii in enumerate(function_base.keys()):
+		datos=function_base[ii]
+		aux=np.zeros((modes+1,datos.shape[1]))
+		for j in range (modes):
+			for k in range(datos.shape[1]):
+				aux[j][k]=datos[j][k]
+		if ckvar_ajuste.get():
+			for k in range (datos.shape[1]):
+				aux[modes][k]=sec_powder[k]
+		else:			
+			for j in range (modes,datos.shape[0]):
+				for k in range (datos.shape[1]):
+					aux[modes][k]+=datos[j][k]*modos[0][j]
+		function_base_parcial[ii]=aux
+
+	print("Termino esa fase")
+	out=lm.minimize(funct_ajuste,fit_params,args=(function_base_parcial,datos_ajuste))
+	print(lm.fit_report(out))
+	for name,param in out.params.items():
+		print(param.value)
+
+btn6_run=tk.Button(aplicacion_6, text="Run", command=ajuste_run,anchor=tk.W,state=tk.NORMAL)
+btn6_run.place(height=30, width=80,y=350,x=410)	
+
+def clk6_4():	
+	lam=np.array(transmision[1]['lambda'][0])	
+	p=np.zeros(lam.shape[0])
+	for a in range (10,180,10):
+		print(a)
+		for b in range (10,180,10):
+			for c in range (10,180,10):
+				r = R.from_euler("zxz", [a,b,c], degrees=True)
+				r=r.inv()
+				aux=r.apply(np.array([1,0,0]))
+				p+=1/4096*fs.Simular_dir_angles(aux,lam,radVar2.get())
+	p=p/0.0844/2
+	np.savetxt("Adjust/Base/powder.csv",p,delimiter=',')
+	for ii in lam:
+		print(ii)
+	
+
+
+def clk6_5():
+	global sec_powder
+	aux=filedialog.askopenfilename(title="Select files", filetypes=(("Function base","*.csv"),("data files","*.dat"),("all files","*.*")))
+	sec_powder=np.loadtxt(aux,delimiter=',')
+
+def clk_ckb6_1():
+	if ckvar_ajuste.get():
+		btn6_4=tk.Button(aplicacion_6, text="Generate", command=clk6_4,anchor=tk.W,state=tk.NORMAL)
+		btn6_4.place(height=30, width=80,y=150,x=230)	
+		btn6_5=tk.Button(aplicacion_6, text="Load", command=clk6_5,anchor=tk.W,state=tk.NORMAL)
+		btn6_5.place(height=30, width=80,y=150,x=320)
+	else:
+		btn6_4=tk.Button(aplicacion_6, text="Generate", command=clk6_4,anchor=tk.W,state=tk.DISABLED)
+		btn6_4.place(height=30, width=80,y=150,x=230)	
+		btn6_5=tk.Button(aplicacion_6, text="Load", command=clk6_5,anchor=tk.W,state=tk.DISABLED)
+		btn6_5.place(height=30, width=80,y=150,x=320)		
+
+ckb6_1=ttk.Checkbutton(aplicacion_6,text="Use powder cross section",command=clk_ckb6_1,variable=ckvar_ajuste)
+ckb6_1.place(height=30,width=200,x=10,y=150)
+ckvar_ajuste.set(False)
+
+def clk6_7():
+	global sec_no_elas
+	aux=filedialog.askopenfilename(title="Select files", filetypes=(("Function base","*.csv"),("data files","*.dat"),("all files","*.*")))
+	sec_no_elas=np.loadtxt(aux,delimiter=',')
+
+def clk_ckb6_3():
+	if ckvar_no_elast.get():
+		btn6_7=tk.Button(aplicacion_6, text="Load", command=clk6_7,anchor=tk.W,state=tk.NORMAL)
+		btn6_7.place(height=30, width=80,y=240,x=320)
+	else:
+		btn6_7=tk.Button(aplicacion_6, text="Load", command=clk6_7,anchor=tk.W,state=tk.DISABLED)
+		btn6_7.place(height=30, width=80,y=240,x=320)		
+
+ckb6_3=ttk.Checkbutton(aplicacion_6,text="Subtract the cross section not-elastic coherent",command=clk_ckb6_3,variable=ckvar_no_elast)
+ckb6_3.place(height=30,width=300,x=10,y=240)
+ckvar_no_elast.set(False)
+
+lbl6_5=tk.Label(aplicacion_6,text="Select number of modes to adjust:",fg="red",anchor=tk.W)
+lbl6_5.place(height=30,width=300,x=10,y=180)
+
+modes_adjust=tk.StringVar()
+spn6_1 = tk.Spinbox(aplicacion_6, from_=0, to=10000,textvariable=modes_adjust,state=tk.NORMAL)
+spn6_1.place(height=30,width=70,x=310,y=180)
+modes_adjust.set("50")
+ckvar_modes_init=tk.BooleanVar()
+modes_init=[]
+def clk6_6():
+	global modes_init
+	aux=filedialog.askopenfilename(title="Select files", filetypes=(("text files","*.txt"),("data files","*.dat"),("all files","*.*")))
+	file=open(aux,"r")
+	for ii in file:
+		modes_init.append(ii)
+def clk_ckb6_1():
+	if ckvar_modes_init.get():
+		btn6_6=tk.Button(aplicacion_6, text="Load", command=clk6_6,anchor=tk.W,state=tk.NORMAL)
+		btn6_6.place(height=30, width=80,y=210,x=320)
+	else:
+		btn6_6=tk.Button(aplicacion_6, text="Load", command=clk6_6,anchor=tk.W,state=tk.DISABLED)
+		btn6_6.place(height=30, width=80,y=210,x=320)		
+
+ckb6_2=ttk.Checkbutton(aplicacion_6,text="Use previous result to initialize the adjust",command=clk_ckb6_1,variable=ckvar_modes_init)
+ckb6_2.place(height=30,width=300,x=10,y=210)
+ckvar_modes_init.set(False)
 
 window.mainloop()
 

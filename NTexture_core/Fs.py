@@ -5,12 +5,8 @@ import quaternion as quat
 import time as tm
 import scipy.io
 import PSpincalc as sp
-a=1
-b=1
-c=1
-alfa=90
-beta=90
-gamma=90
+
+radius=7.5
 
 ################################################################
 #        This file is part of NTexture                         #
@@ -57,6 +53,8 @@ def t_hkl_2(a,b,c,alfa,beta,gamma,h,k,l):
 
 def v_0(a,b,c,alfa,beta,gamma): # Eventualmente lo tengo que hacer para todos tipos de estructura
 	if (tipo_estructura(a,b,c,alfa,beta,gamma)==1): return a**3
+	if (tipo_estructura(a,b,c,alfa,beta,gamma)==7): return 0.866*a*a*c
+
 
 
 
@@ -121,6 +119,7 @@ def rot_quat(beam, rot):
 #lambda_hkl=2*d_hkl*cos(angle between beam and normal)->ang_vextor_normal
 def lam_hkl(vector,h,k,l,t_hkl_2):
 	aux= 2*np.sqrt(1/t_hkl_2)*np.sin(ang_B(vector,h,k,l))
+	#print(aux,h,k,l,vector)
 	return aux
 
 #From the material a list of posible hkl is created, with the value of F_s
@@ -184,7 +183,7 @@ def Leer_archivo(haz,archivo="Lista_hkl.txt",lam_lim=1.5):
 	return estructura
 
 # For optimization, the values of the main function is calculated only for values near lambda_hkl
-def Funcion_pico(h,k,l,haz,lam,inst):
+def Funcion_pico(h,k,l,haz,lam,inst,r):
 	la_hkl=lam_hkl(haz,h,k,l,t_hkl_2(a,b,c,alfa,beta,gamma,h,k,l))
 	if inst==1:
 		tau=t_Enginex(la_hkl)
@@ -192,7 +191,7 @@ def Funcion_pico(h,k,l,haz,lam,inst):
 		tau=tau_i(la_hkl)
 	if inst==3:
 		tau=t_Enginex(la_hkl) # This need to be implemented
-	vi_hkl=v_hkl(lam_hkl(haz,h,k,l,t_hkl_2(a,b,c,alfa,beta,gamma,h,k,l)),ang_vector_normal(haz,h,k,l),0.0001,(0.4)*np.pi/180,8*np.pi/180)#(9.5/60)*np.pi/180)
+	vi_hkl=v_hkl(lam_hkl(haz,h,k,l,t_hkl_2(a,b,c,alfa,beta,gamma,h,k,l)),ang_vector_normal(haz,h,k,l),0.0001,(0.4)*np.pi/180,r*np.pi/180)#(9.5/60)*np.pi/180)
 	estructura=[]
 	for i in lam:
 		if i<la_hkl-0.8:
@@ -374,11 +373,11 @@ def Flor_quat_2(beam,alpha,beta):
 
 
 #The function used in the main code
-def Simular_dir_angles(haz,lam,inst,lam_lim=1.5):
+def Simular_dir_angles(haz,lam,inst,r,lam_lim=1.0):
 	estructura=Leer_archivo(haz,"Lista_hkl.txt",lam_lim)
 	p=np.zeros(len(lam))
 	for i in range (0,len(estructura)):
-		p=p+mu_hkl(estructura[i][4],estructura[i][3],ang_B(haz,estructura[i][0],estructura[i][1],estructura[i][2]),v_0(a,b,c,alfa,beta,gamma))*np.array(Funcion_pico(estructura[i][0],estructura[i][1],estructura[i][2],haz,lam,inst))
+		p=p+mu_hkl(estructura[i][4],estructura[i][3],ang_B(haz,estructura[i][0],estructura[i][1],estructura[i][2]),v_0(a,b,c,alfa,beta,gamma))*np.array(Funcion_pico(estructura[i][0],estructura[i][1],estructura[i][2],haz,lam,inst,r))
 	return p
 
 def interpolacion(sec,lam):
